@@ -212,7 +212,7 @@
 
     .reel-window {
       width: 140px;
-      height: 280px; /* 2:1 Ratio */
+      height: 280px;
       border: 3px solid var(--accent-color);
       border-radius: 12px;
       overflow: hidden;
@@ -488,7 +488,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     // Firebase 專案設定
@@ -509,10 +509,9 @@
     const auth = getAuth(app);
     const db = getDatabase(app);
 
-    // 請調整為你的 GitHub 用戶名與 Repo 名稱
-    const GITHUB_BASE_URL = "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/main/";
+    const GITHUB_BASE_URL = "https://raw.githubusercontent.com/joshtsai0809/Elsa-Game/main/";
 
-    // 11 張照片分配與稀有度 (.jpeg 副檔名)
+    // 11 張照片分配與稀有度 (.jpeg)
     const CARD_DATABASE = [
       { id: "2035", name: "IMG_2035", rarity: "SS", url: GITHUB_BASE_URL + "IMG_2035.jpeg", refund: 10, weight: 2 },
       { id: "2029", name: "IMG_2029", rarity: "S",  url: GITHUB_BASE_URL + "IMG_2029.jpeg", refund: 5,  weight: 8 },
@@ -539,7 +538,13 @@
 
     let activeModalCardInstanceId = null;
 
-    // 登入監聽
+    // 處理頁面重定向返回後的結果
+    getRedirectResult(auth).catch((error) => {
+      console.error("Redirect Login Error:", error);
+      alert("登入過程發生錯誤: " + error.message);
+    });
+
+    // 登入狀態監聽器
     onAuthStateChanged(auth, (user) => {
       if (user) {
         currentUser = user;
@@ -550,10 +555,10 @@
       }
     });
 
-    // Google 登入按鈕
+    // Google 登入按鈕（改用 signInWithRedirect 避免被彈出視窗阻擋）
     document.getElementById('loginBtn').addEventListener('click', () => {
       const provider = new GoogleAuthProvider();
-      signInWithPopup(auth, provider).catch(err => alert("登入失敗: " + err.message));
+      signInWithRedirect(auth, provider);
     });
 
     // 存檔與讀檔 (Firebase Realtime Database)
@@ -587,7 +592,7 @@
       updateUI();
     }
 
-    // 每日簽到邏輯 (一:8, 二:7, 三:6, 其餘:5)
+    // 每日簽到邏輯
     function getTodayCheckinReward() {
       const day = new Date().getDay();
       if (day === 1) return 8;
