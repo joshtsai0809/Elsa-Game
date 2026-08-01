@@ -434,7 +434,7 @@
     <!-- Navigation Tabs -->
     <div class="nav-tabs">
       <button id="tabSpin" class="tab-btn active">🎰 開始抽卡</button>
-      <button id="tabGallery" class="tab-btn">📸 我的圖鑑 (<span id="totalCardsCount">0</span>)</button>
+      <button id="tabGallery" class="tab-btn">😍 我的圖鑑 (<span id="totalCardsCount">0</span>)</button>
     </div>
 
     <!-- Daily Check-in -->
@@ -771,7 +771,7 @@
           userData.cards.push(newInstance);
           saveUserData();
           updateUI();
-          alert(`🎉 恭喜大獎！三個連線獲得照片 [${wonCard.rarity}級] ${wonCard.name}！`);
+          alert(`🎉 恭喜大獎！三個連線獲得張綺文 [${wonCard.rarity}級] ${wonCard.name}！`);
         } else {
           // 計算安慰獎
           const reward = calculateConsolationBonus(results);
@@ -779,10 +779,10 @@
             userData.diamond += reward.bonus;
             saveUserData();
             updateUI();
-            alert(`❌ 沒有連線獲得照片！\n🎁 安慰獎：${reward.reason} 獲得 ${reward.bonus} 💎！`);
+            alert(`❌ 沒有連線獲得張綺文！\n🎁 安慰獎：${reward.reason} 獲得 ${reward.bonus} 💎！`);
           } else {
             saveUserData();
-            alert(`❌ 銘謝惠顧！三個沒有連線，再接再厲！`);
+            alert(`❌ 銘謝惠顧！張綺文不喜歡你！他是我的😍`);
           }
         }
         spinBtn.disabled = false;
