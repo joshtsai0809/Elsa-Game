@@ -197,7 +197,7 @@
       background: #16213e;
       border: 6px solid var(--accent-color);
       border-radius: 20px;
-      padding: 25px;
+      padding: 20px 10px;
       text-align: center;
       box-shadow: 0 10px 30px rgba(0,0,0,0.7);
       width: 100%;
@@ -206,13 +206,13 @@
     .reels-container {
       display: flex;
       justify-content: center;
-      gap: 15px;
+      gap: 8px;
       margin-bottom: 25px;
     }
 
     .reel-window {
-      width: 140px;
-      height: 280px;
+      width: 110px;
+      height: 220px;
       border: 3px solid var(--accent-color);
       border-radius: 12px;
       overflow: hidden;
@@ -226,12 +226,11 @@
       top: 0;
       left: 0;
       width: 100%;
-      transition: transform 3.5s cubic-bezier(0.15, 0.85, 0.35, 1.15);
     }
 
     .card-item {
-      width: 140px;
-      height: 280px;
+      width: 110px;
+      height: 220px;
       position: relative;
       background: #222;
       display: flex;
@@ -248,11 +247,11 @@
 
     .rarity-badge {
       position: absolute;
-      top: 8px;
-      right: 8px;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 0.85rem;
+      top: 6px;
+      right: 6px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.75rem;
       font-weight: bold;
       color: #fff;
       text-shadow: 0 1px 3px rgba(0,0,0,0.8);
@@ -426,11 +425,8 @@
         <span id="userName" style="font-weight: bold;">玩家</span>
       </div>
       <div class="currencies">
-        <div class="currency-item" title="金幣 (抽卡用)">
-          🪙 <span id="goldCoin">0</span>
-        </div>
-        <div class="currency-item" title="新幣 (分解卡片獲得)">
-          💎 <span id="newCoin">0</span>
+        <div class="currency-item" title="鑽石 (抽卡/分解)">
+          💎 <span id="diamond">0</span>
         </div>
       </div>
     </div>
@@ -444,8 +440,8 @@
     <!-- Daily Check-in -->
     <div class="checkin-banner">
       <div>
-        <div style="font-weight: bold; font-size: 1.05rem;">🗓️ 每日簽到領金幣</div>
-        <div id="checkinRewardText" style="font-size: 0.85rem; opacity: 0.9;">今日獎勵：-- 金幣</div>
+        <div style="font-weight: bold; font-size: 1.05rem;">🗓️ 每日簽到領鑽石</div>
+        <div id="checkinRewardText" style="font-size: 0.85rem; opacity: 0.9;">今日獎勵：-- 💎</div>
       </div>
       <button id="checkinBtn" class="checkin-btn">領取</button>
     </div>
@@ -454,11 +450,11 @@
     <div id="slotSection" class="slot-section">
       <div class="slot-machine">
         <div class="reels-container">
-          <div class="reel-window">
-            <div id="reel" class="reel-strip"></div>
-          </div>
+          <div class="reel-window"><div id="reel1" class="reel-strip"></div></div>
+          <div class="reel-window"><div id="reel2" class="reel-strip"></div></div>
+          <div class="reel-window"><div id="reel3" class="reel-strip"></div></div>
         </div>
-        <button id="spinBtn" class="spin-btn">拉動拉霸！(1 🪙)</button>
+        <button id="spinBtn" class="spin-btn">拉動拉霸！(1 💎)</button>
       </div>
     </div>
 
@@ -478,7 +474,7 @@
       </div>
       <div id="modalDate" class="modal-info"></div>
       <div class="modal-btn-group">
-        <button id="deleteCardBtn" class="btn-delete">分解獲得 <span id="modalRefundVal">0</span> 新幣</button>
+        <button id="deleteCardBtn" class="btn-delete">分解獲得 <span id="modalRefundVal">0</span> 💎</button>
         <button id="closeModalBtn" class="btn-close">關閉</button>
       </div>
     </div>
@@ -490,7 +486,6 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // 全域錯誤捕獲
     window.onerror = function(msg, url, line) {
       alert("程式發生錯誤：\n" + msg + "\n行數：" + line);
       return false;
@@ -512,76 +507,71 @@
 
     const GITHUB_BASE_URL = "https://raw.githubusercontent.com/joshtsai0809/Elsa-Game/main/";
 
+    // 卡片清單與設定 (合併幣別，分解💎：SS8, S5, A3, B0.5, C0.25)
     const CARD_DATABASE = [
-      { id: "2035", name: "IMG_2035", rarity: "SS", url: GITHUB_BASE_URL + "IMG_2035.jpeg", refund: 10, weight: 2 },
-      { id: "2029", name: "IMG_2029", rarity: "S",  url: GITHUB_BASE_URL + "IMG_2029.jpeg", refund: 5,  weight: 8 },
-      { id: "2033", name: "IMG_2033", rarity: "A",  url: GITHUB_BASE_URL + "IMG_2033.jpeg", refund: 5,  weight: 15 },
-      { id: "2030", name: "IMG_2030", rarity: "A",  url: GITHUB_BASE_URL + "IMG_2030.jpeg", refund: 5,  weight: 15 },
-      { id: "2037", name: "IMG_2037", rarity: "B",  url: GITHUB_BASE_URL + "IMG_2037.jpeg", refund: 0.5, weight: 20 },
-      { id: "2036", name: "IMG_2036", rarity: "B",  url: GITHUB_BASE_URL + "IMG_2036.jpeg", refund: 0.5, weight: 20 },
-      { id: "2027", name: "IMG_2027", rarity: "B",  url: GITHUB_BASE_URL + "IMG_2027.jpeg", refund: 0.5, weight: 20 },
-      { id: "2038", name: "IMG_2038", rarity: "C",  url: GITHUB_BASE_URL + "IMG_2038.jpeg", refund: 0.25, weight: 25 },
-      { id: "2031", name: "IMG_2031", rarity: "C",  url: GITHUB_BASE_URL + "IMG_2031.jpeg", refund: 0.25, weight: 25 },
-      { id: "2034", name: "IMG_2034", rarity: "C",  url: GITHUB_BASE_URL + "IMG_2034.jpeg", refund: 0.25, weight: 25 },
-      { id: "2032", name: "IMG_2032", rarity: "C",  url: GITHUB_BASE_URL + "IMG_2032.jpeg", refund: 0.25, weight: 25 }
+      { id: "2035", name: "IMG_2035", rarity: "SS", url: GITHUB_BASE_URL + "IMG_2035.jpeg", refund: 8 },
+      { id: "2029", name: "IMG_2029", rarity: "S",  url: GITHUB_BASE_URL + "IMG_2029.jpeg", refund: 5 },
+      { id: "2033", name: "IMG_2033", rarity: "A",  url: GITHUB_BASE_URL + "IMG_2033.jpeg", refund: 3 },
+      { id: "2030", name: "IMG_2030", rarity: "A",  url: GITHUB_BASE_URL + "IMG_2030.jpeg", refund: 3 },
+      { id: "2037", name: "IMG_2037", rarity: "B",  url: GITHUB_BASE_URL + "IMG_2037.jpeg", refund: 0.5 },
+      { id: "2036", name: "IMG_2036", rarity: "B",  url: GITHUB_BASE_URL + "IMG_2036.jpeg", refund: 0.5 },
+      { id: "2027", name: "IMG_2027", rarity: "B",  url: GITHUB_BASE_URL + "IMG_2027.jpeg", refund: 0.5 },
+      { id: "2038", name: "IMG_2038", rarity: "C",  url: GITHUB_BASE_URL + "IMG_2038.jpeg", refund: 0.25 },
+      { id: "2031", name: "IMG_2031", rarity: "C",  url: GITHUB_BASE_URL + "IMG_2031.jpeg", refund: 0.25 },
+      { id: "2034", name: "IMG_2034", rarity: "C",  url: GITHUB_BASE_URL + "IMG_2034.jpeg", refund: 0.25 },
+      { id: "2032", name: "IMG_2032", rarity: "C",  url: GITHUB_BASE_URL + "IMG_2032.jpeg", refund: 0.25 }
     ];
 
-    const CARD_HEIGHT = 280;
+    const CARD_HEIGHT = 220;
 
     let currentUser = null;
     let userData = {
-      goldCoin: 10,
-      newCoin: 0,
+      diamond: 10,
       lastCheckinDate: "",
       cards: []
     };
 
     let activeModalCardInstanceId = null;
 
-    // 監聽登入狀態
+    // Auth State
     onAuthStateChanged(auth, (user) => {
       if (user) {
         currentUser = user;
-        document.getElementById('statusMsg').innerText = "登入成功，讀取玩家資料中...";
+        document.getElementById('statusMsg').innerText = "登入成功，讀取資料中...";
         loadUserDataFromFirebase();
       } else {
         document.getElementById('authBlock').classList.remove('hidden');
         document.getElementById('gameBlock').classList.add('hidden');
-        document.getElementById('statusMsg').innerText = "請使用 Google 帳號登入進行遊玩";
       }
     });
 
-    // 登入按鈕
     document.getElementById('loginBtn').addEventListener('click', () => {
-      document.getElementById('statusMsg').innerText = "彈出視窗登入中...";
       const provider = new GoogleAuthProvider();
       signInWithPopup(auth, provider).catch(err => {
         alert("登入失敗：\n" + err.message);
-        document.getElementById('statusMsg').innerText = "登入失敗，請重試。";
       });
     });
 
-    // 存資料與讀資料（加上容錯處理）
     function saveUserData() {
       if (!currentUser) return;
-      set(ref(db, 'users/' + currentUser.uid), userData).catch(err => {
-        console.error("存檔失敗", err);
-      });
+      set(ref(db, 'users/' + currentUser.uid), userData).catch(err => console.error("存檔失敗", err));
     }
 
     function loadUserDataFromFirebase() {
       const dbRef = ref(db);
       get(child(dbRef, `users/${currentUser.uid}`)).then((snapshot) => {
         if (snapshot.exists()) {
-          userData = snapshot.val();
-          if (!userData.cards) userData.cards = [];
+          const val = snapshot.val();
+          userData.diamond = val.diamond !== undefined ? val.diamond : ((val.goldCoin || 0) + (val.newCoin || 0));
+          userData.lastCheckinDate = val.lastCheckinDate || "";
+          userData.cards = val.cards || [];
         } else {
-          userData = { goldCoin: 10, newCoin: 0, lastCheckinDate: "", cards: [] };
+          userData = { diamond: 10, lastCheckinDate: "", cards: [] };
           saveUserData();
         }
         showGameUI();
       }).catch((error) => {
-        alert("讀取雲端資料失敗，改為本機預設：\n" + error.message);
+        alert("讀取雲端資料失敗，改為本機資料：\n" + error.message);
         showGameUI();
       });
     }
@@ -592,12 +582,12 @@
       document.getElementById('userName').innerText = currentUser.displayName || "玩家";
       document.getElementById('userAvatar').src = currentUser.photoURL || "https://picsum.photos/100";
 
-      initReel();
+      initReels();
       updateCheckinUI();
       updateUI();
     }
 
-    // 每日簽到邏輯
+    // Daily Checkin
     function getTodayCheckinReward() {
       const day = new Date().getDay();
       if (day === 1) return 8;
@@ -614,7 +604,7 @@
     function updateCheckinUI() {
       const reward = getTodayCheckinReward();
       const todayStr = getTodayDateString();
-      document.getElementById('checkinRewardText').innerText = `今日獎勵：${reward} 金幣`;
+      document.getElementById('checkinRewardText').innerText = `今日獎勵：${reward} 💎`;
       
       const checkinBtn = document.getElementById('checkinBtn');
       if (userData.lastCheckinDate === todayStr) {
@@ -631,90 +621,134 @@
       if (userData.lastCheckinDate === todayStr) return;
 
       const reward = getTodayCheckinReward();
-      userData.goldCoin += reward;
+      userData.diamond += reward;
       userData.lastCheckinDate = todayStr;
 
       saveUserData();
       updateCheckinUI();
       updateUI();
-      alert(`🎉 成功領取每日簽到獎勵：${reward} 金幣！`);
+      alert(`🎉 成功領取每日簽到獎勵：${reward} 💎！`);
     });
 
-    // 拉霸機邏輯
-    function initReel() {
-      const reel = document.getElementById('reel');
-      let html = '';
-      for (let i = 0; i < 12; i++) {
-        CARD_DATABASE.forEach(card => {
-          html += `
-            <div class="card-item">
-              <img src="${card.url}" alt="${card.name}">
-              <div class="rarity-badge bg-${card.rarity}">${card.rarity}</div>
-            </div>
-          `;
-        });
-      }
-      reel.innerHTML = html;
+    // 初始化 3 個轉輪
+    function initReels() {
+      ['reel1', 'reel2', 'reel3'].forEach(id => {
+        const reel = document.getElementById(id);
+        let html = '';
+        for (let i = 0; i < 12; i++) {
+          CARD_DATABASE.forEach(card => {
+            html += `
+              <div class="card-item">
+                <img src="${card.url}" alt="${card.name}">
+                <div class="rarity-badge bg-${card.rarity}">${card.rarity}</div>
+              </div>
+            `;
+          });
+        }
+        reel.innerHTML = html;
+      });
     }
 
-    function getRandomCardByWeight() {
-      const totalWeight = CARD_DATABASE.reduce((sum, c) => sum + c.weight, 0);
-      let rand = Math.random() * totalWeight;
-      for (let card of CARD_DATABASE) {
-        if (rand < card.weight) return card;
-        rand -= card.weight;
-      }
-      return CARD_DATABASE[CARD_DATABASE.length - 1];
+    // 抽卡機率邏輯 (沒中30%, C35%, B20%, A10%, S4%, SS1%)
+    function drawOutcome() {
+      const rand = Math.random() * 100;
+      if (rand < 30) return { win: false, rarity: null };          // 30% 沒中
+      if (rand < 65) return { win: true, rarity: 'C' };           // 35% C
+      if (rand < 85) return { win: true, rarity: 'B' };           // 20% B
+      if (rand < 95) return { win: true, rarity: 'A' };           // 10% A
+      if (rand < 99) return { win: true, rarity: 'S' };           // 4%  S
+      return { win: true, rarity: 'SS' };                         // 1%  SS
     }
 
+    // 隨機取得指定稀有度的卡片
+    function getRandomCardByRarity(rarity) {
+      const filtered = CARD_DATABASE.filter(c => c.rarity === rarity);
+      return filtered[Math.floor(Math.random() * filtered.length)];
+    }
+
+    // 隨機取得任意卡片
+    function getRandomCard() {
+      return CARD_DATABASE[Math.floor(Math.random() * CARD_DATABASE.length)];
+    }
+
+    // 開始拉霸
     document.getElementById('spinBtn').addEventListener('click', () => {
-      if (userData.goldCoin < 1) {
-        alert("⚠️ 金幣不足，每抽一次需要 1 個金幣！");
+      if (userData.diamond < 1) {
+        alert("⚠️ 鑽石不足，拉動一次需要 1 💎！");
         return;
       }
 
       const spinBtn = document.getElementById('spinBtn');
       spinBtn.disabled = true;
 
-      userData.goldCoin -= 1;
+      userData.diamond -= 1;
       updateUI();
 
-      const drawnCard = getRandomCardByWeight();
-      const cardIndex = CARD_DATABASE.findIndex(c => c.id === drawnCard.id);
+      const outcome = drawOutcome();
+      let resCard1, resCard2, resCard3;
+      let wonCard = null;
 
-      const reel = document.getElementById('reel');
-      const rounds = 8;
-      const targetOffset = (rounds * CARD_DATABASE.length + cardIndex) * CARD_HEIGHT;
+      if (outcome.win) {
+        // 中獎：三個軸出現同一張卡
+        wonCard = getRandomCardByRarity(outcome.rarity);
+        resCard1 = wonCard;
+        resCard2 = wonCard;
+        resCard3 = wonCard;
+      } else {
+        // 未中獎：隨機三張，並確保不完全相同
+        resCard1 = getRandomCard();
+        resCard2 = getRandomCard();
+        resCard3 = getRandomCard();
+        while (resCard1.id === resCard2.id && resCard2.id === resCard3.id) {
+          resCard3 = getRandomCard();
+        }
+      }
 
-      reel.style.transition = 'transform 3.5s cubic-bezier(0.15, 0.85, 0.35, 1.15)';
-      reel.style.transform = `translateY(-${targetOffset}px)`;
+      const results = [resCard1, resCard2, resCard3];
+      const reelIds = ['reel1', 'reel2', 'reel3'];
 
+      reelIds.forEach((id, idx) => {
+        const reel = document.getElementById(id);
+        const cardIndex = CARD_DATABASE.findIndex(c => c.id === results[idx].id);
+        const rounds = 8 + idx * 2; // 個別轉動時間錯開
+        const targetOffset = (rounds * CARD_DATABASE.length + cardIndex) * CARD_HEIGHT;
+
+        reel.style.transition = `transform ${3 + idx * 0.5}s cubic-bezier(0.15, 0.85, 0.35, 1.15)`;
+        reel.style.transform = `translateY(-${targetOffset}px)`;
+
+        setTimeout(() => {
+          reel.style.transition = 'none';
+          reel.style.transform = `translateY(-${cardIndex * CARD_HEIGHT}px)`;
+        }, (3 + idx * 0.5) * 1000 + 100);
+      });
+
+      // 動畫結束處理
       setTimeout(() => {
-        reel.style.transition = 'none';
-        reel.style.transform = `translateY(-${cardIndex * CARD_HEIGHT}px)`;
-
-        const newInstance = {
-          instanceId: "inst_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4),
-          cardId: drawnCard.id,
-          obtainedAt: new Date().toLocaleString('zh-TW')
-        };
-
-        userData.cards.push(newInstance);
-        saveUserData();
-        updateUI();
-
-        alert(`🎉 恭喜抽中 [${drawnCard.rarity}級] ${drawnCard.name}！`);
+        if (outcome.win && wonCard) {
+          const newInstance = {
+            instanceId: "inst_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4),
+            cardId: wonCard.id,
+            obtainedAt: new Date().toLocaleString('zh-TW')
+          };
+          userData.cards.push(newInstance);
+          saveUserData();
+          updateUI();
+          alert(`🎉 恭喜中獎！三個連線獲得 [${wonCard.rarity}級] ${wonCard.name}！`);
+        } else {
+          saveUserData();
+          alert(`❌ 銘謝惠顧！三個沒有連線，再試一次吧！`);
+        }
         spinBtn.disabled = false;
-      }, 3600);
+      }, 4200);
     });
 
-    // 圖鑑與卡片詳情
+    // 圖鑑與 Modal
     function renderGallery() {
       const grid = document.getElementById('galleryGrid');
       grid.innerHTML = '';
 
       if (!userData.cards || userData.cards.length === 0) {
-        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #888; padding: 40px 0;">尚無卡片，快去拉霸機抽一張吧！</div>`;
+        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #888; padding: 40px 0;">尚無卡片，快去拉霸機試試手氣吧！</div>`;
         return;
       }
 
@@ -765,17 +799,17 @@
         const item = userData.cards[idx];
         const cardData = CARD_DATABASE.find(c => c.id === item.cardId);
 
-        userData.newCoin += cardData.refund;
+        userData.diamond += cardData.refund;
         userData.cards.splice(idx, 1);
 
         saveUserData();
         updateUI();
         document.getElementById('cardModal').style.display = 'none';
-        alert(`🗑️ 已刪除卡片，獲得 ${cardData.refund} 新幣！`);
+        alert(`🗑️ 已分解卡片，獲得 ${cardData.refund} 💎！`);
       }
     });
 
-    // 分頁切換
+    // Tab 切換
     document.getElementById('tabSpin').addEventListener('click', () => {
       document.getElementById('tabSpin').classList.add('active');
       document.getElementById('tabGallery').classList.remove('active');
@@ -792,8 +826,7 @@
     });
 
     function updateUI() {
-      document.getElementById('goldCoin').innerText = userData.goldCoin;
-      document.getElementById('newCoin').innerText = userData.newCoin;
+      document.getElementById('diamond').innerText = userData.diamond;
       document.getElementById('totalCardsCount').innerText = userData.cards ? userData.cards.length : 0;
       renderGallery();
     }
