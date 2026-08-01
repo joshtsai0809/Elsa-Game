@@ -507,7 +507,7 @@
 
     const GITHUB_BASE_URL = "https://raw.githubusercontent.com/joshtsai0809/Elsa-Game/main/";
 
-    // 卡片清單與設定 (合併幣別，分解💎：SS8, S5, A3, B0.5, C0.25)
+    // 卡片清單與設定
     const CARD_DATABASE = [
       { id: "2035", name: "IMG_2035", rarity: "SS", url: GITHUB_BASE_URL + "IMG_2035.jpeg", refund: 8 },
       { id: "2029", name: "IMG_2029", rarity: "S",  url: GITHUB_BASE_URL + "IMG_2029.jpeg", refund: 5 },
@@ -649,26 +649,64 @@
       });
     }
 
-    // 抽卡機率邏輯 (沒中30%, C35%, B20%, A10%, S4%, SS1%)
+    // 抽卡機率邏輯 (沒中50%, C20%, B15%, A10%, S4%, SS1%)
     function drawOutcome() {
       const rand = Math.random() * 100;
-      if (rand < 30) return { win: false, rarity: null };          // 30% 沒中
-      if (rand < 65) return { win: true, rarity: 'C' };           // 35% C
-      if (rand < 85) return { win: true, rarity: 'B' };           // 20% B
+      if (rand < 50) return { win: false, rarity: null };          // 50% 沒中
+      if (rand < 70) return { win: true, rarity: 'C' };           // 20% C
+      if (rand < 85) return { win: true, rarity: 'B' };           // 15% B
       if (rand < 95) return { win: true, rarity: 'A' };           // 10% A
       if (rand < 99) return { win: true, rarity: 'S' };           // 4%  S
       return { win: true, rarity: 'SS' };                         // 1%  SS
     }
 
-    // 隨機取得指定稀有度的卡片
     function getRandomCardByRarity(rarity) {
       const filtered = CARD_DATABASE.filter(c => c.rarity === rarity);
       return filtered[Math.floor(Math.random() * filtered.length)];
     }
 
-    // 隨機取得任意卡片
     function getRandomCard() {
       return CARD_DATABASE[Math.floor(Math.random() * CARD_DATABASE.length)];
+    }
+
+    // 計算沒中卡片時的安慰鑽石獎勵
+    function calculateConsolationBonus(cards) {
+      // 統計稀有度數量
+      const rarityCounts = {};
+      // 統計特定卡片 ID 數量（計算「兩個相同」）
+      const idCounts = {};
+
+      cards.forEach(c => {
+        rarityCounts[c.rarity] = (rarityCounts[c.rarity] || 0) + 1;
+        idCounts[c.id] = (idCounts[c.id] || 0) + 1;
+      });
+
+      // 優先計算最高獎勵條件：
+      // 1. 兩個 SS -> 3 💎
+      if (rarityCounts['SS'] === 2) return { bonus: 3, reason: "出現 2 個 SS 級！" };
+      // 2. 兩個 S -> 2 💎
+      if (rarityCounts['S'] === 2) return { bonus: 2, reason: "出現 2 個 S 級！" };
+
+      // 3. 兩個相同的 A -> 1 💎
+      for (let card of cards) {
+        if (card.rarity === 'A' && idCounts[card.id] === 2) {
+          return { bonus: 1, reason: "出現 2 個相同的 A 級！" };
+        }
+      }
+
+      // 4. 兩個相同的 B 或 C -> 0.5 💎
+      for (let card of cards) {
+        if ((card.rarity === 'B' || card.rarity === 'C') && idCounts[card.id] === 2) {
+          return { bonus: 0.5, reason: `出現 2 個相同的 ${card.rarity} 級！` };
+        }
+      }
+
+      // 5. 一個 SS -> 2 💎
+      if (rarityCounts['SS'] === 1) return { bonus: 2, reason: "出現 1 個 SS 級！" };
+      // 6. 一個 S -> 1 💎
+      if (rarityCounts['S'] === 1) return { bonus: 1, reason: "出現 1 個 S 級！" };
+
+      return { bonus: 0, reason: "" };
     }
 
     // 開始拉霸
@@ -733,10 +771,19 @@
           userData.cards.push(newInstance);
           saveUserData();
           updateUI();
-          alert(`🎉 恭喜中獎！三個連線獲得 [${wonCard.rarity}級] ${wonCard.name}！`);
+          alert(`🎉 恭喜大獎！三個連線獲得照片 [${wonCard.rarity}級] ${wonCard.name}！`);
         } else {
-          saveUserData();
-          alert(`❌ 銘謝惠顧！三個沒有連線，再試一次吧！`);
+          // 計算安慰獎
+          const reward = calculateConsolationBonus(results);
+          if (reward.bonus > 0) {
+            userData.diamond += reward.bonus;
+            saveUserData();
+            updateUI();
+            alert(`❌ 沒有連線獲得照片！\n🎁 安慰獎：${reward.reason} 獲得 ${reward.bonus} 💎！`);
+          } else {
+            saveUserData();
+            alert(`❌ 銘謝惠顧！三個沒有連線，再接再厲！`);
+          }
         }
         spinBtn.disabled = false;
       }, 4200);
