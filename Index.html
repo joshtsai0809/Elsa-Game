@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elsa Game</title>
+
+  <style>
+    :root {
+      --bg-color: #0d0f18;
+      --card-bg: #1a1d2e;
+      --accent-color: #ffd700;
+      --primary-btn: #e94560;
+      --text-color: #ffffff;
+      --border-color: #2a2e45;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 10px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    h1 {
+      color: var(--accent-color);
+      font-size: 2.2rem;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+      margin-bottom: 5px;
+    }
+
+    /* Auth Block */
+    .auth-container {
+      background: var(--card-bg);
+      border: 2px solid var(--accent-color);
+      border-radius: 16px;
+      padding: 30px 20px;
+      text-align: center;
+      width: 100%;
+      max-width: 400px;
+      margin-top: 40px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .auth-btn {
+      background: #4285F4;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 25px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 20px;
+      box-shadow: 0 4px 12px rgba(66, 133, 244, 0.4);
+      transition: all 0.2s;
+    }
+
+    .auth-btn:hover {
+      background: #3367d6;
+      transform: translateY(-2px);
+    }
+
+    /* User Status Bar */
+    .user-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 12px 20px;
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 15px;
+      border: 1px solid var(--border-color);
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid var(--accent-color);
+    }
+
+    .currencies {
+      display: flex;
+      gap: 15px;
+      font-weight: bold;
+    }
+
+    .currency-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(0,0,0,0.3);
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* Nav Tabs */
+    .nav-tabs {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      background: var(--card-bg);
+      color: #aaa;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--accent-color);
+      color: #000;
+      border-color: var(--accent-color);
+    }
+
+    /* Daily Checkin Banner */
+    .checkin-banner {
+      background: linear-gradient(135deg, #2b1055, #7597de);
+      border-radius: 12px;
+      padding: 15px 20px;
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    .checkin-btn {
+      background: var(--accent-color);
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      font-weight: bold;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+
+    .checkin-btn:disabled {
+      background: #666;
+      color: #ccc;
+      cursor: not-allowed;
+    }
+
+    /* Slot Section */
+    .slot-section {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .slot-machine {
+      background: #16213e;
+      border: 6px solid var(--accent-color);
+      border-radius: 20px;
+      padding: 25px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+      width: 100%;
+    }
+
+    .reels-container {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .reel-window {
+      width: 140px;
+      height: 280px; /* 2:1 Ratio */
+      border: 3px solid var(--accent-color);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      background: #000;
+      box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
+    }
+
+    .reel-strip {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      transition: transform 3.5s cubic-bezier(0.15, 0.85, 0.35, 1.15);
+    }
+
+    .card-item {
+      width: 140px;
+      height: 280px;
+      position: relative;
+      background: #222;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .card-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .rarity-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+
+    .bg-SS { background: linear-gradient(45deg, #ff007f, #7f00ff); }
+    .bg-S  { background: linear-gradient(45deg, #ff4e50, #f9d423); }
+    .bg-A  { background: linear-gradient(45deg, #00c6ff, #0072ff); }
+    .bg-B  { background: linear-gradient(45deg, #11998e, #38ef7d); }
+    .bg-C  { background: linear-gradient(45deg, #bdc3c7, #2c3e50); }
+
+    .spin-btn {
+      background: linear-gradient(180deg, #ff4757, #e84118);
+      color: white;
+      border: none;
+      padding: 15px 40px;
+      font-size: 1.3rem;
+      font-weight: bold;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 6px 15px rgba(232, 65, 24, 0.5);
+      transition: all 0.2s;
+    }
+
+    .spin-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(232, 65, 24, 0.7);
+    }
+
+    .spin-btn:disabled {
+      background: #555;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Gallery Section */
+    .gallery-section {
+      width: 100%;
+      max-width: 600px;
+      display: none;
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+
+    .gallery-card {
+      position: relative;
+      aspect-ratio: 1 / 2;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .gallery-card:hover {
+      transform: scale(1.02);
+      border-color: var(--accent-color);
+    }
+
+    .gallery-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Modal Pop-up */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      border: 2px solid var(--accent-color);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 350px;
+      padding: 20px;
+      text-align: center;
+      position: relative;
+    }
+
+    .modal-img-container {
+      width: 100%;
+      aspect-ratio: 1 / 2;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 15px;
+      position: relative;
+    }
+
+    .modal-img-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .modal-info {
+      font-size: 0.95rem;
+      color: #ccc;
+      margin-bottom: 15px;
+      line-height: 1.5;
+    }
+
+    .modal-btn-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-delete {
+      flex: 1;
+      background: #d63031;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-close {
+      flex: 1;
+      background: #6c5ce7;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🎰 Elsa Game</h1>
+  </header>
+
+  <!-- Login Block -->
+  <div id="authBlock" class="auth-container">
+    <h2>歡迎來到 Elsa Game</h2>
+    <p style="margin-top: 10px; color: #aaa;">請使用 Google 帳號登入進行遊玩</p>
+    <button id="loginBtn" class="auth-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#fff" d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.761H12.545z"/></svg>
+      Google 帳號登入
+    </button>
+  </div>
+
+  <!-- Game Main Block -->
+  <div id="gameBlock" class="hidden" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+    
+    <!-- User Status Bar -->
+    <div class="user-bar">
+      <div class="user-info">
+        <img id="userAvatar" class="user-avatar" src="" alt="Avatar">
+        <span id="userName" style="font-weight: bold;">玩家</span>
+      </div>
+      <div class="currencies">
+        <div class="currency-item" title="金幣 (抽卡用)">
+          🪙 <span id="goldCoin">0</span>
+        </div>
+        <div class="currency-item" title="新幣 (分解卡片獲得)">
+          💎 <span id="newCoin">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button id="tabSpin" class="tab-btn active">🎰 開始抽卡</button>
+      <button id="tabGallery" class="tab-btn">📸 我的圖鑑 (<span id="totalCardsCount">0</span>)</button>
+    </div>
+
+    <!-- Daily Check-in -->
+    <div class="checkin-banner">
+      <div>
+        <div style="font-weight: bold; font-size: 1.05rem;">🗓️ 每日簽到領金幣</div>
+        <div id="checkinRewardText" style="font-size: 0.85rem; opacity: 0.9;">今日獎勵：-- 金幣</div>
+      </div>
+      <button id="checkinBtn" class="checkin-btn">領取</button>
+    </div>
+
+    <!-- Slot Section -->
+    <div id="slotSection" class="slot-section">
+      <div class="slot-machine">
+        <div class="reels-container">
+          <div class="reel-window">
+            <div id="reel" class="reel-strip"></div>
+          </div>
+        </div>
+        <button id="spinBtn" class="spin-btn">拉動拉霸！(1 🪙)</button>
+      </div>
+    </div>
+
+    <!-- Gallery Section -->
+    <div id="gallerySection" class="gallery-section">
+      <div id="galleryGrid" class="gallery-grid"></div>
+    </div>
+
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="cardModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-img-container">
+        <img id="modalImg" src="" alt="Card">
+        <div id="modalRarity" class="rarity-badge"></div>
+      </div>
+      <div id="modalDate" class="modal-info"></div>
+      <div class="modal-btn-group">
+        <button id="deleteCardBtn" class="btn-delete">分解獲得 <span id="modalRefundVal">0</span> 新幣</button>
+        <button id="closeModalBtn" class="btn-close">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase v10 SDK Modules -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    // Firebase 專案設定
+    const firebaseConfig = {
+      apiKey: "AIzaSyDn4mUZH2zMbY7_FFk7A0TKuHeAjvBxSPw",
+      authDomain: "elsa-game-81dad.firebaseapp.com",
+      databaseURL: "https://elsa-game-81dad-default-rtdb.firebaseio.com",
+      projectId: "elsa-game-81dad",
+      storageBucket: "elsa-game-81dad.firebasestorage.app",
+      messagingSenderId: "706801768967",
+      appId: "1:706801768967:web:2a1034557ed1f8f3ada8a2",
+      measurementId: "G-NX3QCLP0Q1"
+    };
+
+    // 初始化 Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    // 請調整為你的 GitHub 用戶名與 Repo 名稱
+    const GITHUB_BASE_URL = "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/main/";
+
+    // 11 張照片分配與稀有度 (.jpeg 副檔名)
+    const CARD_DATABASE = [
+      { id: "2035", name: "IMG_2035", rarity: "SS", url: GITHUB_BASE_URL + "IMG_2035.jpeg", refund: 10, weight: 2 },
+      { id: "2029", name: "IMG_2029", rarity: "S",  url: GITHUB_BASE_URL + "IMG_2029.jpeg", refund: 5,  weight: 8 },
+      { id: "2033", name: "IMG_2033", rarity: "A",  url: GITHUB_BASE_URL + "IMG_2033.jpeg", refund: 5,  weight: 15 },
+      { id: "2030", name: "IMG_2030", rarity: "A",  url: GITHUB_BASE_URL + "IMG_2030.jpeg", refund: 5,  weight: 15 },
+      { id: "2037", name: "IMG_2037", rarity: "B",  url: GITHUB_BASE_URL + "IMG_2037.jpeg", refund: 0.5, weight: 20 },
+      { id: "2036", name: "IMG_2036", rarity: "B",  url: GITHUB_BASE_URL + "IMG_2036.jpeg", refund: 0.5, weight: 20 },
+      { id: "2027", name: "IMG_2027", rarity: "B",  url: GITHUB_BASE_URL + "IMG_2027.jpeg", refund: 0.5, weight: 20 },
+      { id: "2038", name: "IMG_2038", rarity: "C",  url: GITHUB_BASE_URL + "IMG_2038.jpeg", refund: 0.25, weight: 25 },
+      { id: "2031", name: "IMG_2031", rarity: "C",  url: GITHUB_BASE_URL + "IMG_2031.jpeg", refund: 0.25, weight: 25 },
+      { id: "2034", name: "IMG_2034", rarity: "C",  url: GITHUB_BASE_URL + "IMG_2034.jpeg", refund: 0.25, weight: 25 },
+      { id: "2032", name: "IMG_2032", rarity: "C",  url: GITHUB_BASE_URL + "IMG_2032.jpeg", refund: 0.25, weight: 25 }
+    ];
+
+    const CARD_HEIGHT = 280;
+
+    let currentUser = null;
+    let userData = {
+      goldCoin: 0,
+      newCoin: 0,
+      lastCheckinDate: "",
+      cards: []
+    };
+
+    let activeModalCardInstanceId = null;
+
+    // 登入監聽
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUser = user;
+        loadUserDataFromFirebase();
+      } else {
+        document.getElementById('authBlock').classList.remove('hidden');
+        document.getElementById('gameBlock').classList.add('hidden');
+      }
+    });
+
+    // Google 登入按鈕
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      const provider = new GoogleAuthProvider();
+      signInWithPopup(auth, provider).catch(err => alert("登入失敗: " + err.message));
+    });
+
+    // 存檔與讀檔 (Firebase Realtime Database)
+    function saveUserData() {
+      if (!currentUser) return;
+      set(ref(db, 'users/' + currentUser.uid), userData);
+    }
+
+    function loadUserDataFromFirebase() {
+      const dbRef = ref(db);
+      get(child(dbRef, `users/${currentUser.uid}`)).then((snapshot) => {
+        if (snapshot.exists()) {
+          userData = snapshot.val();
+          if (!userData.cards) userData.cards = [];
+        } else {
+          userData = { goldCoin: 10, newCoin: 0, lastCheckinDate: "", cards: [] };
+          saveUserData();
+        }
+        showGameUI();
+      }).catch((error) => console.error(error));
+    }
+
+    function showGameUI() {
+      document.getElementById('authBlock').classList.add('hidden');
+      document.getElementById('gameBlock').classList.remove('hidden');
+      document.getElementById('userName').innerText = currentUser.displayName || "玩家";
+      document.getElementById('userAvatar').src = currentUser.photoURL || "https://picsum.photos/100";
+
+      initReel();
+      updateCheckinUI();
+      updateUI();
+    }
+
+    // 每日簽到邏輯 (一:8, 二:7, 三:6, 其餘:5)
+    function getTodayCheckinReward() {
+      const day = new Date().getDay();
+      if (day === 1) return 8;
+      if (day === 2) return 7;
+      if (day === 3) return 6;
+      return 5;
+    }
+
+    function getTodayDateString() {
+      const d = new Date();
+      return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+    }
+
+    function updateCheckinUI() {
+      const reward = getTodayCheckinReward();
+      const todayStr = getTodayDateString();
+      document.getElementById('checkinRewardText').innerText = `今日獎勵：${reward} 金幣`;
+      
+      const checkinBtn = document.getElementById('checkinBtn');
+      if (userData.lastCheckinDate === todayStr) {
+        checkinBtn.disabled = true;
+        checkinBtn.innerText = "今日已領取";
+      } else {
+        checkinBtn.disabled = false;
+        checkinBtn.innerText = "領取";
+      }
+    }
+
+    document.getElementById('checkinBtn').addEventListener('click', () => {
+      const todayStr = getTodayDateString();
+      if (userData.lastCheckinDate === todayStr) return;
+
+      const reward = getTodayCheckinReward();
+      userData.goldCoin += reward;
+      userData.lastCheckinDate = todayStr;
+
+      saveUserData();
+      updateCheckinUI();
+      updateUI();
+      alert(`🎉 成功領取每日簽到獎勵：${reward} 金幣！`);
+    });
+
+    // 拉霸機初始化與轉動
+    function initReel() {
+      const reel = document.getElementById('reel');
+      let html = '';
+      for (let i = 0; i < 12; i++) {
+        CARD_DATABASE.forEach(card => {
+          html += `
+            <div class="card-item">
+              <img src="${card.url}" alt="${card.name}">
+              <div class="rarity-badge bg-${card.rarity}">${card.rarity}</div>
+            </div>
+          `;
+        });
+      }
+      reel.innerHTML = html;
+    }
+
+    function getRandomCardByWeight() {
+      const totalWeight = CARD_DATABASE.reduce((sum, c) => sum + c.weight, 0);
+      let rand = Math.random() * totalWeight;
+      for (let card of CARD_DATABASE) {
+        if (rand < card.weight) return card;
+        rand -= card.weight;
+      }
+      return CARD_DATABASE[CARD_DATABASE.length - 1];
+    }
+
+    document.getElementById('spinBtn').addEventListener('click', () => {
+      if (userData.goldCoin < 1) {
+        alert("⚠️ 金幣不足，每抽一次需要 1 個金幣！");
+        return;
+      }
+
+      const spinBtn = document.getElementById('spinBtn');
+      spinBtn.disabled = true;
+
+      userData.goldCoin -= 1;
+      updateUI();
+
+      const drawnCard = getRandomCardByWeight();
+      const cardIndex = CARD_DATABASE.findIndex(c => c.id === drawnCard.id);
+
+      const reel = document.getElementById('reel');
+      const rounds = 8;
+      const targetOffset = (rounds * CARD_DATABASE.length + cardIndex) * CARD_HEIGHT;
+
+      reel.style.transition = 'transform 3.5s cubic-bezier(0.15, 0.85, 0.35, 1.15)';
+      reel.style.transform = `translateY(-${targetOffset}px)`;
+
+      setTimeout(() => {
+        reel.style.transition = 'none';
+        reel.style.transform = `translateY(-${cardIndex * CARD_HEIGHT}px)`;
+
+        const newInstance = {
+          instanceId: "inst_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4),
+          cardId: drawnCard.id,
+          obtainedAt: new Date().toLocaleString('zh-TW')
+        };
+
+        userData.cards.push(newInstance);
+        saveUserData();
+        updateUI();
+
+        alert(`🎉 恭喜抽中 [${drawnCard.rarity}級] ${drawnCard.name}！`);
+        spinBtn.disabled = false;
+      }, 3600);
+    });
+
+    // 圖鑑與卡片詳情 / 分解
+    function renderGallery() {
+      const grid = document.getElementById('galleryGrid');
+      grid.innerHTML = '';
+
+      if (!userData.cards || userData.cards.length === 0) {
+        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #888; padding: 40px 0;">尚無卡片，快去拉霸機抽一張吧！</div>`;
+        return;
+      }
+
+      const sortedCards = [...userData.cards].reverse();
+
+      sortedCards.forEach(item => {
+        const cardData = CARD_DATABASE.find(c => c.id === item.cardId);
+        if (!cardData) return;
+
+        const cardEl = document.createElement('div');
+        cardEl.className = 'gallery-card';
+        cardEl.onclick = () => openModal(item, cardData);
+
+        cardEl.innerHTML = `
+          <img src="${cardData.url}" alt="${cardData.name}">
+          <div class="rarity-badge bg-${cardData.rarity}">${cardData.rarity}</div>
+        `;
+        grid.appendChild(cardEl);
+      });
+    }
+
+    function openModal(instance, cardData) {
+      activeModalCardInstanceId = instance.instanceId;
+      document.getElementById('modalImg').src = cardData.url;
+      
+      const badge = document.getElementById('modalRarity');
+      badge.innerText = cardData.rarity;
+      badge.className = `rarity-badge bg-${cardData.rarity}`;
+
+      document.getElementById('modalDate').innerHTML = `
+        <strong>${cardData.name}</strong><br>
+        獲得時間：${instance.obtainedAt}
+      `;
+      document.getElementById('modalRefundVal').innerText = cardData.refund;
+      document.getElementById('cardModal').style.display = 'flex';
+    }
+
+    document.getElementById('closeModalBtn').addEventListener('click', () => {
+      document.getElementById('cardModal').style.display = 'none';
+      activeModalCardInstanceId = null;
+    });
+
+    document.getElementById('deleteCardBtn').addEventListener('click', () => {
+      if (!activeModalCardInstanceId) return;
+
+      const idx = userData.cards.findIndex(c => c.instanceId === activeModalCardInstanceId);
+      if (idx !== -1) {
+        const item = userData.cards[idx];
+        const cardData = CARD_DATABASE.find(c => c.id === item.cardId);
+
+        userData.newCoin += cardData.refund;
+        userData.cards.splice(idx, 1);
+
+        saveUserData();
+        updateUI();
+        document.getElementById('cardModal').style.display = 'none';
+        alert(`🗑️ 已刪除卡片，獲得 ${cardData.refund} 新幣！`);
+      }
+    });
+
+    // 頁面切換按鈕
+    document.getElementById('tabSpin').addEventListener('click', () => {
+      document.getElementById('tabSpin').classList.add('active');
+      document.getElementById('tabGallery').classList.remove('active');
+      document.getElementById('slotSection').style.display = 'flex';
+      document.getElementById('gallerySection').style.display = 'none';
+    });
+
+    document.getElementById('tabGallery').addEventListener('click', () => {
+      document.getElementById('tabGallery').classList.add('active');
+      document.getElementById('tabSpin').classList.remove('active');
+      document.getElementById('slotSection').style.display = 'none';
+      document.getElementById('gallerySection').style.display = 'block';
+      renderGallery();
+    });
+
+    function updateUI() {
+      document.getElementById('goldCoin').innerText = userData.goldCoin;
+      document.getElementById('newCoin').innerText = userData.newCoin;
+      document.getElementById('totalCardsCount').innerText = userData.cards ? userData.cards.length : 0;
+      renderGallery();
+    }
+  </script>
+</body>
+</html>
