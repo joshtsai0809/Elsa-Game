@@ -154,8 +154,8 @@
       border-color: var(--accent-color);
     }
 
-    /* Daily Checkin Banner */
-    .checkin-banner {
+    /* Banners */
+    .checkin-banner, .weekly-banner {
       background: linear-gradient(135deg, #2b1055, #7597de);
       border-radius: 12px;
       padding: 15px 20px;
@@ -164,11 +164,16 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
 
-    .checkin-btn {
+    .weekly-banner {
+      background: linear-gradient(135deg, #b8860b, #ff4500);
+      border: 2px solid var(--accent-color);
+    }
+
+    .checkin-btn, .weekly-btn {
       background: var(--accent-color);
       color: #000;
       border: none;
@@ -178,7 +183,7 @@
       cursor: pointer;
     }
 
-    .checkin-btn:disabled {
+    .checkin-btn:disabled, .weekly-btn:disabled {
       background: #666;
       color: #ccc;
       cursor: not-allowed;
@@ -289,7 +294,7 @@
       box-shadow: none;
     }
 
-    /* Gallery Section */
+    /* Gallery Section (縮小卡片顯示) */
     .gallery-section {
       width: 100%;
       max-width: 600px;
@@ -298,14 +303,20 @@
 
     .gallery-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 15px;
+      grid-template-columns: repeat(3, 1fr); /* 縮小成 3 欄式 */
+      gap: 12px;
+    }
+
+    @media (min-width: 480px) {
+      .gallery-grid {
+        grid-template-columns: repeat(4, 1fr); /* 較大螢幕 4 欄 */
+      }
     }
 
     .gallery-card {
       position: relative;
-      aspect-ratio: 1 / 2;
-      border-radius: 12px;
+      aspect-ratio: 1 / 1.8;
+      border-radius: 10px;
       overflow: hidden;
       background: var(--card-bg);
       border: 2px solid var(--border-color);
@@ -314,7 +325,7 @@
     }
 
     .gallery-card:hover {
-      transform: scale(1.02);
+      transform: scale(1.05);
       border-color: var(--accent-color);
     }
 
@@ -322,6 +333,21 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+    }
+
+    /* 張數標籤徽章 */
+    .count-badge {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      background: rgba(0, 0, 0, 0.85);
+      color: var(--accent-color);
+      border: 1px solid var(--accent-color);
+      padding: 2px 6px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
     }
 
     /* Modal Pop-up */
@@ -371,11 +397,11 @@
 
     .modal-btn-group {
       display: flex;
-      gap: 10px;
+      flex-direction: column;
+      gap: 8px;
     }
 
     .btn-delete {
-      flex: 1;
       background: #d63031;
       color: white;
       border: none;
@@ -385,8 +411,17 @@
       cursor: pointer;
     }
 
+    .btn-delete-all {
+      background: #e67e22;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
     .btn-close {
-      flex: 1;
       background: #6c5ce7;
       color: white;
       border: none;
@@ -437,6 +472,15 @@
       <button id="tabGallery" class="tab-btn">😍 我的圖鑑 (<span id="totalCardsCount">0</span>)</button>
     </div>
 
+    <!-- Special Weekly Reward for 蔡嘉修 -->
+    <div id="weeklyBanner" class="weekly-banner hidden">
+      <div>
+        <div style="font-weight: bold; font-size: 1.05rem;">👑 蔡嘉修專屬每週福利</div>
+        <div id="weeklyRewardText" style="font-size: 0.85rem; opacity: 0.9;">每週免費領取 500 💎</div>
+      </div>
+      <button id="weeklyBtn" class="weekly-btn">領取 500 💎</button>
+    </div>
+
     <!-- Daily Check-in -->
     <div class="checkin-banner">
       <div>
@@ -474,7 +518,8 @@
       </div>
       <div id="modalDate" class="modal-info"></div>
       <div class="modal-btn-group">
-        <button id="deleteCardBtn" class="btn-delete">分解獲得 <span id="modalRefundVal">0</span> 💎</button>
+        <button id="deleteCardBtn" class="btn-delete">分解單張 (+<span id="modalRefundVal">0</span> 💎)</button>
+        <button id="deleteAllCardBtn" class="btn-delete-all">全部分解 (<span id="modalTotalCount">0</span>張，+<span id="modalTotalRefundVal">0</span> 💎)</button>
         <button id="closeModalBtn" class="btn-close">關閉</button>
       </div>
     </div>
@@ -528,10 +573,11 @@
     let userData = {
       diamond: 10,
       lastCheckinDate: "",
+      lastWeeklyCheckinTimestamp: 0,
       cards: []
     };
 
-    let activeModalCardInstanceId = null;
+    let activeModalCardId = null;
 
     // Auth State
     onAuthStateChanged(auth, (user) => {
@@ -564,9 +610,10 @@
           const val = snapshot.val();
           userData.diamond = val.diamond !== undefined ? val.diamond : ((val.goldCoin || 0) + (val.newCoin || 0));
           userData.lastCheckinDate = val.lastCheckinDate || "";
+          userData.lastWeeklyCheckinTimestamp = val.lastWeeklyCheckinTimestamp || 0;
           userData.cards = val.cards || [];
         } else {
-          userData = { diamond: 10, lastCheckinDate: "", cards: [] };
+          userData = { diamond: 10, lastCheckinDate: "", lastWeeklyCheckinTimestamp: 0, cards: [] };
           saveUserData();
         }
         showGameUI();
@@ -582,10 +629,49 @@
       document.getElementById('userName').innerText = currentUser.displayName || "玩家";
       document.getElementById('userAvatar').src = currentUser.photoURL || "https://picsum.photos/100";
 
+      // 檢查是否為「蔡嘉修」以顯示專屬每週福利
+      if (currentUser.displayName && currentUser.displayName.includes("蔡嘉修")) {
+        document.getElementById('weeklyBanner').classList.remove('hidden');
+        updateWeeklyUI();
+      } else {
+        document.getElementById('weeklyBanner').classList.add('hidden');
+      }
+
       initReels();
       updateCheckinUI();
       updateUI();
     }
+
+    // Weekly Check-in for 蔡嘉修 (7天冷卻時間)
+    function updateWeeklyUI() {
+      const now = Date.now();
+      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+      const timePassed = now - userData.lastWeeklyCheckinTimestamp;
+      const weeklyBtn = document.getElementById('weeklyBtn');
+
+      if (timePassed < SEVEN_DAYS_MS) {
+        const remainingDays = Math.ceil((SEVEN_DAYS_MS - timePassed) / (24 * 60 * 60 * 1000));
+        weeklyBtn.disabled = true;
+        weeklyBtn.innerText = `還需 ${remainingDays} 天`;
+      } else {
+        weeklyBtn.disabled = false;
+        weeklyBtn.innerText = "領取 500 💎";
+      }
+    }
+
+    document.getElementById('weeklyBtn').addEventListener('click', () => {
+      const now = Date.now();
+      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+      if (now - userData.lastWeeklyCheckinTimestamp < SEVEN_DAYS_MS) return;
+
+      userData.diamond += 500;
+      userData.lastWeeklyCheckinTimestamp = now;
+
+      saveUserData();
+      updateWeeklyUI();
+      updateUI();
+      alert(`👑 尊貴的蔡嘉修大人，已成功領取每週專屬福利 500 💎！`);
+    });
 
     // Daily Checkin
     function getTodayCheckinReward() {
@@ -671,9 +757,7 @@
 
     // 計算沒中卡片時的安慰鑽石獎勵
     function calculateConsolationBonus(cards) {
-      // 統計稀有度數量
       const rarityCounts = {};
-      // 統計特定卡片 ID 數量（計算「兩個相同」）
       const idCounts = {};
 
       cards.forEach(c => {
@@ -681,29 +765,22 @@
         idCounts[c.id] = (idCounts[c.id] || 0) + 1;
       });
 
-      // 優先計算最高獎勵條件：
-      // 1. 兩個 SS -> 3 💎
       if (rarityCounts['SS'] === 2) return { bonus: 3, reason: "出現 2 個 SS 級！" };
-      // 2. 兩個 S -> 2 💎
       if (rarityCounts['S'] === 2) return { bonus: 2, reason: "出現 2 個 S 級！" };
 
-      // 3. 兩個相同的 A -> 1 💎
       for (let card of cards) {
         if (card.rarity === 'A' && idCounts[card.id] === 2) {
           return { bonus: 1, reason: "出現 2 個相同的 A 級！" };
         }
       }
 
-      // 4. 兩個相同的 B 或 C -> 0.5 💎
       for (let card of cards) {
         if ((card.rarity === 'B' || card.rarity === 'C') && idCounts[card.id] === 2) {
           return { bonus: 0.5, reason: `出現 2 個相同的 ${card.rarity} 級！` };
         }
       }
 
-      // 5. 一個 SS -> 2 💎
       if (rarityCounts['SS'] === 1) return { bonus: 2, reason: "出現 1 個 SS 級！" };
-      // 6. 一個 S -> 1 💎
       if (rarityCounts['S'] === 1) return { bonus: 1, reason: "出現 1 個 S 級！" };
 
       return { bonus: 0, reason: "" };
@@ -727,13 +804,11 @@
       let wonCard = null;
 
       if (outcome.win) {
-        // 中獎：三個軸出現同一張卡
         wonCard = getRandomCardByRarity(outcome.rarity);
         resCard1 = wonCard;
         resCard2 = wonCard;
         resCard3 = wonCard;
       } else {
-        // 未中獎：隨機三張，並確保不完全相同
         resCard1 = getRandomCard();
         resCard2 = getRandomCard();
         resCard3 = getRandomCard();
@@ -748,7 +823,7 @@
       reelIds.forEach((id, idx) => {
         const reel = document.getElementById(id);
         const cardIndex = CARD_DATABASE.findIndex(c => c.id === results[idx].id);
-        const rounds = 8 + idx * 2; // 個別轉動時間錯開
+        const rounds = 8 + idx * 2;
         const targetOffset = (rounds * CARD_DATABASE.length + cardIndex) * CARD_HEIGHT;
 
         reel.style.transition = `transform ${3 + idx * 0.5}s cubic-bezier(0.15, 0.85, 0.35, 1.15)`;
@@ -760,7 +835,6 @@
         }, (3 + idx * 0.5) * 1000 + 100);
       });
 
-      // 動畫結束處理
       setTimeout(() => {
         if (outcome.win && wonCard) {
           const newInstance = {
@@ -773,7 +847,6 @@
           updateUI();
           alert(`🎉 恭喜大獎！三個連線獲得張綺文 [${wonCard.rarity}級] ${wonCard.name}！`);
         } else {
-          // 計算安慰獎
           const reward = calculateConsolationBonus(results);
           if (reward.bonus > 0) {
             userData.diamond += reward.bonus;
@@ -789,7 +862,7 @@
       }, 4200);
     });
 
-    // 圖鑑與 Modal
+    // 圖鑑與 Modal（縮小顯示 + 計數統計）
     function renderGallery() {
       const grid = document.getElementById('galleryGrid');
       grid.innerHTML = '';
@@ -799,26 +872,36 @@
         return;
       }
 
-      const sortedCards = [...userData.cards].reverse();
+      // 統計每種卡片的數量
+      const cardCounts = {};
+      userData.cards.forEach(item => {
+        cardCounts[item.cardId] = (cardCounts[item.cardId] || 0) + 1;
+      });
 
-      sortedCards.forEach(item => {
-        const cardData = CARD_DATABASE.find(c => c.id === item.cardId);
+      // 取得不重複的卡片 ID 清單
+      const uniqueCardIds = Object.keys(cardCounts);
+
+      uniqueCardIds.forEach(cardId => {
+        const cardData = CARD_DATABASE.find(c => c.id === cardId);
         if (!cardData) return;
+
+        const count = cardCounts[cardId];
 
         const cardEl = document.createElement('div');
         cardEl.className = 'gallery-card';
-        cardEl.onclick = () => openModal(item, cardData);
+        cardEl.onclick = () => openModal(cardData, count);
 
         cardEl.innerHTML = `
           <img src="${cardData.url}" alt="${cardData.name}">
           <div class="rarity-badge bg-${cardData.rarity}">${cardData.rarity}</div>
+          <div class="count-badge">x${count}</div>
         `;
         grid.appendChild(cardEl);
       });
     }
 
-    function openModal(instance, cardData) {
-      activeModalCardInstanceId = instance.instanceId;
+    function openModal(cardData, count) {
+      activeModalCardId = cardData.id;
       document.getElementById('modalImg').src = cardData.url;
       
       const badge = document.getElementById('modalRarity');
@@ -827,24 +910,27 @@
 
       document.getElementById('modalDate').innerHTML = `
         <strong>${cardData.name}</strong><br>
-        獲得時間：${instance.obtainedAt}
+        目前擁有：${count} 張
       `;
       document.getElementById('modalRefundVal').innerText = cardData.refund;
+      document.getElementById('modalTotalCount').innerText = count;
+      document.getElementById('modalTotalRefundVal').innerText = (cardData.refund * count);
+
       document.getElementById('cardModal').style.display = 'flex';
     }
 
     document.getElementById('closeModalBtn').addEventListener('click', () => {
       document.getElementById('cardModal').style.display = 'none';
-      activeModalCardInstanceId = null;
+      activeModalCardId = null;
     });
 
+    // 分解單張
     document.getElementById('deleteCardBtn').addEventListener('click', () => {
-      if (!activeModalCardInstanceId) return;
+      if (!activeModalCardId) return;
 
-      const idx = userData.cards.findIndex(c => c.instanceId === activeModalCardInstanceId);
+      const idx = userData.cards.findIndex(c => c.cardId === activeModalCardId);
       if (idx !== -1) {
-        const item = userData.cards[idx];
-        const cardData = CARD_DATABASE.find(c => c.id === item.cardId);
+        const cardData = CARD_DATABASE.find(c => c.id === activeModalCardId);
 
         userData.diamond += cardData.refund;
         userData.cards.splice(idx, 1);
@@ -852,7 +938,27 @@
         saveUserData();
         updateUI();
         document.getElementById('cardModal').style.display = 'none';
-        alert(`🗑️ 已分解卡片，獲得 ${cardData.refund} 💎！`);
+        alert(`🗑️ 已分解 1 張卡片，獲得 ${cardData.refund} 💎！`);
+      }
+    });
+
+    // 全部分解
+    document.getElementById('deleteAllCardBtn').addEventListener('click', () => {
+      if (!activeModalCardId) return;
+
+      const cardData = CARD_DATABASE.find(c => c.id === activeModalCardId);
+      const targetCards = userData.cards.filter(c => c.cardId === activeModalCardId);
+      const count = targetCards.length;
+
+      if (count > 0) {
+        const totalRefund = cardData.refund * count;
+        userData.diamond += totalRefund;
+        userData.cards = userData.cards.filter(c => c.cardId !== activeModalCardId);
+
+        saveUserData();
+        updateUI();
+        document.getElementById('cardModal').style.display = 'none';
+        alert(`🗑️ 已全部分解 ${count} 張卡片，獲得 ${totalRefund} 💎！`);
       }
     });
 
