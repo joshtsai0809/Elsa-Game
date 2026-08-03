@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
@@ -47,7 +47,6 @@
       margin-bottom: 5px;
     }
 
-    /* Auth Block */
     .auth-container {
       background: var(--card-bg);
       border: 2px solid var(--accent-color);
@@ -82,7 +81,6 @@
       transform: translateY(-2px);
     }
 
-    /* User Status Bar */
     .user-bar {
       display: flex;
       justify-content: space-between;
@@ -143,7 +141,6 @@
       background: #00a884;
     }
 
-    /* Nav Tabs */
     .nav-tabs {
       display: flex;
       gap: 10px;
@@ -172,7 +169,6 @@
       border-color: var(--accent-color);
     }
 
-    /* Banners */
     .checkin-banner, .weekly-banner {
       background: linear-gradient(135deg, #2b1055, #7597de);
       border-radius: 12px;
@@ -201,7 +197,6 @@
       cursor: pointer;
     }
 
-    /* Slot Section */
     .slot-section {
       width: 100%;
       max-width: 600px;
@@ -306,7 +301,6 @@
       box-shadow: none;
     }
 
-    /* Gallery Section */
     .gallery-section {
       width: 100%;
       max-width: 600px;
@@ -361,7 +355,6 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.5);
     }
 
-    /* Modal Pop-up */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -442,7 +435,6 @@
       cursor: pointer;
     }
 
-    /* Player List Style */
     .player-list-container {
       max-height: 220px;
       overflow-y: auto;
@@ -526,7 +518,7 @@
     <h1>🎰 Elsa Game</h1>
   </header>
 
-  <!-- Login Block -->
+  <!-- Auth Block -->
   <div id="authBlock" class="auth-container">
     <h2>歡迎來到 Elsa Game</h2>
     <p id="statusMsg" style="margin-top: 10px; color: #aaa;">請使用 Google 帳號登入進行遊玩</p>
@@ -749,7 +741,6 @@
       document.getElementById('userName').innerText = currentUser.displayName || "玩家";
       document.getElementById('userAvatar').src = currentUser.photoURL || "https://picsum.photos/100";
 
-      // 獨佔權限：僅「蔡嘉修」可無限領取 100 💎
       const name = currentUser.displayName || "";
       if (name.includes("蔡嘉修")) {
         document.getElementById('weeklyBanner').classList.remove('hidden');
@@ -762,7 +753,6 @@
       updateUI();
     }
 
-    // 蔡嘉修無限領取 100 💎
     document.getElementById('weeklyBtn').addEventListener('click', () => {
       userData.diamond += 100;
       saveUserData();
@@ -770,7 +760,6 @@
       alert(`👑 尊貴的 蔡嘉修，已無限領取 100 💎！（當前總額：${userData.diamond} 💎）`);
     });
 
-    // --- 玩家列表 Modal ---
     document.getElementById('openPlayerListBtn').addEventListener('click', () => {
       document.getElementById('playerListModal').style.display = 'flex';
       selectedTargetUser = null;
@@ -783,7 +772,6 @@
       document.getElementById('playerListModal').style.display = 'none';
     });
 
-    // 載入玩家列表，並生成「轉贈」按鈕
     function loadPlayerList() {
       const container = document.getElementById('playerListContainer');
       container.innerHTML = `<div style="text-align: center; color: #aaa; padding: 10px;">讀取玩家列表中...</div>`;
@@ -796,7 +784,7 @@
           let count = 0;
 
           for (let uid in users) {
-            if (uid === currentUser.uid) continue; // 排除自己
+            if (uid === currentUser.uid) continue;
 
             count++;
             const u = users[uid];
@@ -817,7 +805,6 @@
               <button class="btn-action-transfer">轉贈 🎁</button>
             `;
 
-            // 點擊「轉贈」按鈕選定該玩家
             const btn = card.querySelector('.btn-action-transfer');
             btn.onclick = () => {
               document.querySelectorAll('.player-card').forEach(c => c.classList.remove('selected'));
@@ -837,11 +824,11 @@
           container.innerHTML = `<div style="text-align: center; color: #aaa; padding: 10px;">尚無其他玩家資料</div>`;
         }
       }).catch(err => {
-        container.innerHTML = `<div style="text-align: center; color: #e74c3c; padding: 10px;">載入失敗</div>`;
+        container.innerHTML = `<div style="text-align: center; color: #e74c3c; padding: 10px;">載入失敗 (請檢查 Firebase Rules)</div>`;
+        console.error(err);
       });
     }
 
-    // 確認轉贈送出
     document.getElementById('confirmTransferBtn').addEventListener('click', () => {
       if (!selectedTargetUser) {
         alert("請先點擊玩家後方的「轉贈」按鈕選定對象！");
@@ -860,7 +847,6 @@
         return;
       }
 
-      // 扣款與加款
       userData.diamond -= amount;
       const newTargetDiamond = (selectedTargetUser.diamond || 0) + amount;
 
@@ -874,7 +860,6 @@
       });
     });
 
-    // 每日簽到
     function getTodayCheckinReward() {
       const day = new Date().getDay();
       if (day === 1) return 8;
