@@ -176,8 +176,8 @@
       width: 100%;
       max-width: 600px;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      flex-direction: column;
+      gap: 12px;
       margin-bottom: 15px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
@@ -185,6 +185,13 @@
     .weekly-banner {
       background: linear-gradient(135deg, #b8860b, #ff4500);
       border: 2px solid var(--accent-color);
+    }
+
+    .banner-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
     }
 
     .checkin-btn, .weekly-btn {
@@ -195,6 +202,16 @@
       font-weight: bold;
       border-radius: 20px;
       cursor: pointer;
+    }
+
+    .admin-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: rgba(0,0,0,0.25);
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.2);
     }
 
     .slot-section {
@@ -495,13 +512,12 @@
 
     .form-input {
       width: 100%;
-      padding: 10px 14px;
-      margin-bottom: 10px;
+      padding: 8px 12px;
       border-radius: 8px;
       border: 1px solid var(--border-color);
       background: rgba(0,0,0,0.5);
       color: white;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       outline: none;
     }
 
@@ -553,22 +569,36 @@
       <button id="tabGallery" class="tab-btn">😍 我的圖鑑 (<span id="totalCardsCount">0</span>)</button>
     </div>
 
-    <!-- Special Infinite Reward for 蔡嘉修 -->
+    <!-- Creator Special Area for 蔡嘉修 -->
     <div id="weeklyBanner" class="weekly-banner hidden">
-      <div>
-        <div style="font-weight: bold; font-size: 1.05rem;">👑 蔡嘉修 創世主專屬權限</div>
-        <div style="font-size: 0.85rem; opacity: 0.9;">可無限次領取 100 💎</div>
+      <div class="banner-row">
+        <div>
+          <div style="font-weight: bold; font-size: 1.05rem;">👑 蔡嘉修 創世主專區</div>
+          <div style="font-size: 0.85rem; opacity: 0.9;">無限領取鑽石 & 電子郵件派發鑽石</div>
+        </div>
+        <button id="weeklyBtn" class="weekly-btn">無限領 100 💎</button>
       </div>
-      <button id="weeklyBtn" class="weekly-btn">無限領取 100 💎</button>
+
+      <!-- Email Transfer Form -->
+      <div class="admin-form">
+        <div style="font-size: 0.85rem; font-weight: bold; color: var(--accent-color);">🎁 指定 Email 贈送鑽石：</div>
+        <input type="email" id="adminTargetEmail" class="form-input" placeholder="輸入目標玩家 Email (例如 user@gmail.com)">
+        <div style="display: flex; gap: 8px;">
+          <input type="number" id="adminSendAmount" class="form-input" placeholder="鑽石數量" min="1" style="flex: 1;">
+          <button id="adminSendBtn" class="checkin-btn" style="white-space: nowrap; padding: 0 15px;">發送鑽石</button>
+        </div>
+      </div>
     </div>
 
     <!-- Daily Check-in -->
     <div class="checkin-banner">
-      <div>
-        <div style="font-weight: bold; font-size: 1.05rem;">🗓️ 每日簽到領鑽石</div>
-        <div id="checkinRewardText" style="font-size: 0.85rem; opacity: 0.9;">今日獎勵：-- 💎</div>
+      <div class="banner-row">
+        <div>
+          <div style="font-weight: bold; font-size: 1.05rem;">🗓️ 每日簽到領鑽石</div>
+          <div id="checkinRewardText" style="font-size: 0.85rem; opacity: 0.9;">今日獎勵：-- 💎</div>
+        </div>
+        <button id="checkinBtn" class="checkin-btn">領取</button>
       </div>
-      <button id="checkinBtn" class="checkin-btn">領取</button>
     </div>
 
     <!-- Slot Section -->
@@ -618,7 +648,7 @@
       <!-- 選取狀態與數量輸入 -->
       <div id="transferFormSection" style="margin-top: 10px;">
         <p id="selectedPlayerText" style="font-size: 0.85rem; color: var(--accent-color); margin-bottom: 8px; font-weight: bold;">尚未選擇對象</p>
-        <input type="number" id="transferAmount" class="form-input" placeholder="請輸入轉贈鑽石數量" min="1">
+        <input type="number" id="transferAmount" class="form-input" placeholder="請輸入轉贈鑽石數量" min="1" style="margin-bottom: 10px;">
       </div>
 
       <div class="modal-btn-group" style="margin-top: 5px;">
@@ -704,7 +734,6 @@
 
     function saveUserData() {
       if (!currentUser) return;
-      // 同步把 Google Display Name 與 Email 存入資料庫
       userData.displayName = currentUser.displayName || "";
       userData.email = currentUser.email || "";
       userData.photoURL = currentUser.photoURL || "https://picsum.photos/100";
@@ -743,7 +772,6 @@
       document.getElementById('authBlock').classList.add('hidden');
       document.getElementById('gameBlock').classList.remove('hidden');
       
-      // 顯示名字優先級：displayName -> email -> 不知名玩家
       const name = currentUser.displayName || currentUser.email || "玩家";
       document.getElementById('userName').innerText = name;
       document.getElementById('userAvatar').src = currentUser.photoURL || "https://picsum.photos/100";
@@ -764,6 +792,60 @@
       saveUserData();
       updateUI();
       alert(`👑 尊貴的 蔡嘉修，已無限領取 100 💎！（當前總額：${userData.diamond} 💎）`);
+    });
+
+    // 創世主蔡嘉修：透過 Email 送鑽石功能
+    document.getElementById('adminSendBtn').addEventListener('click', () => {
+      const targetEmail = document.getElementById('adminTargetEmail').value.trim().toLowerCase();
+      const amount = parseInt(document.getElementById('adminSendAmount').value, 10);
+
+      if (!targetEmail) {
+        alert("請輸入目標玩家的 Email！");
+        return;
+      }
+      if (isNaN(amount) || amount <= 0) {
+        alert("請輸入有效的鑽石數量！");
+        return;
+      }
+
+      const dbRef = ref(db);
+      get(child(dbRef, 'users')).then((snapshot) => {
+        if (!snapshot.exists()) {
+          alert("目前資料庫中尚無任何玩家！");
+          return;
+        }
+
+        const users = snapshot.val();
+        let targetUid = null;
+        let targetUser = null;
+
+        // 搜尋匹配 Email 的玩家
+        for (let uid in users) {
+          if (users[uid].email && users[uid].email.toLowerCase() === targetEmail) {
+            targetUid = uid;
+            targetUser = users[uid];
+            break;
+          }
+        }
+
+        if (!targetUid) {
+          alert(`⚠️ 找不到 Email 為「${targetEmail}」的玩家！\n請確認該玩家是否已登入過遊戲。`);
+          return;
+        }
+
+        const newDiamond = (targetUser.diamond || 0) + amount;
+        update(ref(db, `users/${targetUid}`), { diamond: newDiamond }).then(() => {
+          const recipientName = targetUser.displayName || targetUser.email;
+          alert(`🎉 成功發送 ${amount} 💎 給「${recipientName}」(${targetEmail})！\n該玩家現在擁有 ${newDiamond} 💎。`);
+          document.getElementById('adminTargetEmail').value = '';
+          document.getElementById('adminSendAmount').value = '';
+        }).catch(err => {
+          alert("發送失敗：" + err.message);
+        });
+
+      }).catch(err => {
+        alert("查詢失敗：" + err.message);
+      });
     });
 
     document.getElementById('openPlayerListBtn').addEventListener('click', () => {
@@ -795,7 +877,6 @@
             count++;
             const u = users[uid];
             
-            // 決定玩家名稱顯示：如果有 displayName 則顯示，否則顯示 email
             let name = u.displayName;
             if (!name || name === "Google 玩家" || name === "玩家") {
               name = u.email || "未知帳號";
