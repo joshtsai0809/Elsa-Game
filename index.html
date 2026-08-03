@@ -674,6 +674,7 @@
     let currentUser = null;
     let userData = {
       displayName: "",
+      email: "",
       photoURL: "",
       diamond: 10,
       lastCheckinDate: "",
@@ -703,17 +704,19 @@
 
     function saveUserData() {
       if (!currentUser) return;
-      // 強制寫入 Google 最新提供的名稱與頭像
-      userData.displayName = currentUser.displayName || currentUser.email || "玩家";
+      // 同步把 Google Display Name 與 Email 存入資料庫
+      userData.displayName = currentUser.displayName || "";
+      userData.email = currentUser.email || "";
       userData.photoURL = currentUser.photoURL || "https://picsum.photos/100";
+      
       set(ref(db, 'users/' + currentUser.uid), userData).catch(err => console.error("存檔失敗", err));
     }
 
     function loadUserDataFromFirebase() {
       const dbRef = ref(db);
       get(child(dbRef, `users/${currentUser.uid}`)).then((snapshot) => {
-        // 直接先從 Google Auth 拿取最準確的名字
-        userData.displayName = currentUser.displayName || currentUser.email || "玩家";
+        userData.displayName = currentUser.displayName || "";
+        userData.email = currentUser.email || "";
         userData.photoURL = currentUser.photoURL || "https://picsum.photos/100";
 
         if (snapshot.exists()) {
@@ -729,7 +732,8 @@
         saveUserData();
         showGameUI();
       }).catch((error) => {
-        userData.displayName = currentUser.displayName || currentUser.email || "玩家";
+        userData.displayName = currentUser.displayName || "";
+        userData.email = currentUser.email || "";
         userData.photoURL = currentUser.photoURL || "https://picsum.photos/100";
         showGameUI();
       });
@@ -739,7 +743,7 @@
       document.getElementById('authBlock').classList.add('hidden');
       document.getElementById('gameBlock').classList.remove('hidden');
       
-      // 直接把 Google 名字放上 UI
+      // 顯示名字優先級：displayName -> email -> 不知名玩家
       const name = currentUser.displayName || currentUser.email || "玩家";
       document.getElementById('userName').innerText = name;
       document.getElementById('userAvatar').src = currentUser.photoURL || "https://picsum.photos/100";
@@ -790,8 +794,12 @@
 
             count++;
             const u = users[uid];
-            // 讀取名稱，如無名稱則退回顯示 Google/玩家
-            const name = u.displayName || "Google 玩家";
+            
+            // 決定玩家名稱顯示：如果有 displayName 則顯示，否則顯示 email
+            let name = u.displayName;
+            if (!name || name === "Google 玩家" || name === "玩家") {
+              name = u.email || "未知帳號";
+            }
 
             const card = document.createElement('div');
             card.className = 'player-card';
@@ -827,7 +835,7 @@
           container.innerHTML = `<div style="text-align: center; color: #aaa; padding: 10px;">尚無其他玩家資料</div>`;
         }
       }).catch(err => {
-        container.innerHTML = `<div style="text-align: center; color: #e74c3c; padding: 10px;">載入失敗 (請確認 Firebase Rules 設置)</div>`;
+        container.innerHTML = `<div style="text-align: center; color: #e74c3c; padding: 10px;">載入失敗 (請確認 Firebase Rules)</div>`;
       });
     }
 
