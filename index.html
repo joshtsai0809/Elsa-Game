@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
@@ -518,7 +518,7 @@
     <h1>🎰 Elsa Game</h1>
   </header>
 
-  <!-- Auth Block -->
+  <!-- Login Block -->
   <div id="authBlock" class="auth-container">
     <h2>歡迎來到 Elsa Game</h2>
     <p id="statusMsg" style="margin-top: 10px; color: #aaa;">請使用 Google 帳號登入進行遊玩</p>
@@ -536,7 +536,7 @@
       <div class="user-info">
         <img id="userAvatar" class="user-avatar" src="" alt="Avatar">
         <div>
-          <span id="userName" style="font-weight: bold;">玩家</span>
+          <span id="userName" style="font-weight: bold;">--</span>
         </div>
       </div>
       <div class="currencies">
@@ -703,7 +703,8 @@
 
     function saveUserData() {
       if (!currentUser) return;
-      userData.displayName = currentUser.displayName || "玩家";
+      // 強制寫入 Google 最新提供的名稱與頭像
+      userData.displayName = currentUser.displayName || currentUser.email || "玩家";
       userData.photoURL = currentUser.photoURL || "https://picsum.photos/100";
       set(ref(db, 'users/' + currentUser.uid), userData).catch(err => console.error("存檔失敗", err));
     }
@@ -711,26 +712,25 @@
     function loadUserDataFromFirebase() {
       const dbRef = ref(db);
       get(child(dbRef, `users/${currentUser.uid}`)).then((snapshot) => {
+        // 直接先從 Google Auth 拿取最準確的名字
+        userData.displayName = currentUser.displayName || currentUser.email || "玩家";
+        userData.photoURL = currentUser.photoURL || "https://picsum.photos/100";
+
         if (snapshot.exists()) {
           const val = snapshot.val();
-          userData.displayName = currentUser.displayName || "玩家";
-          userData.photoURL = currentUser.photoURL || "https://picsum.photos/100";
           userData.diamond = val.diamond !== undefined ? val.diamond : 10;
           userData.lastCheckinDate = val.lastCheckinDate || "";
           userData.cards = val.cards || [];
         } else {
-          userData = { 
-            displayName: currentUser.displayName || "玩家", 
-            photoURL: currentUser.photoURL || "https://picsum.photos/100",
-            diamond: 10, 
-            lastCheckinDate: "", 
-            cards: [] 
-          };
+          userData.diamond = 10;
+          userData.lastCheckinDate = "";
+          userData.cards = [];
         }
         saveUserData();
         showGameUI();
       }).catch((error) => {
-        alert("讀取雲端資料失敗，改為本機資料：\n" + error.message);
+        userData.displayName = currentUser.displayName || currentUser.email || "玩家";
+        userData.photoURL = currentUser.photoURL || "https://picsum.photos/100";
         showGameUI();
       });
     }
@@ -738,10 +738,12 @@
     function showGameUI() {
       document.getElementById('authBlock').classList.add('hidden');
       document.getElementById('gameBlock').classList.remove('hidden');
-      document.getElementById('userName').innerText = currentUser.displayName || "玩家";
+      
+      // 直接把 Google 名字放上 UI
+      const name = currentUser.displayName || currentUser.email || "玩家";
+      document.getElementById('userName').innerText = name;
       document.getElementById('userAvatar').src = currentUser.photoURL || "https://picsum.photos/100";
 
-      const name = currentUser.displayName || "";
       if (name.includes("蔡嘉修")) {
         document.getElementById('weeklyBanner').classList.remove('hidden');
       } else {
@@ -788,7 +790,8 @@
 
             count++;
             const u = users[uid];
-            const name = u.displayName || "匿名玩家";
+            // 讀取名稱，如無名稱則退回顯示 Google/玩家
+            const name = u.displayName || "Google 玩家";
 
             const card = document.createElement('div');
             card.className = 'player-card';
@@ -809,7 +812,7 @@
             btn.onclick = () => {
               document.querySelectorAll('.player-card').forEach(c => c.classList.remove('selected'));
               card.classList.add('selected');
-              selectedTargetUser = { uid, ...u };
+              selectedTargetUser = { uid, ...u, displayName: name };
               document.getElementById('selectedPlayerText').innerText = `已選擇轉贈對象：${name}`;
               document.getElementById('transferAmount').focus();
             };
@@ -824,8 +827,7 @@
           container.innerHTML = `<div style="text-align: center; color: #aaa; padding: 10px;">尚無其他玩家資料</div>`;
         }
       }).catch(err => {
-        container.innerHTML = `<div style="text-align: center; color: #e74c3c; padding: 10px;">載入失敗 (請檢查 Firebase Rules)</div>`;
-        console.error(err);
+        container.innerHTML = `<div style="text-align: center; color: #e74c3c; padding: 10px;">載入失敗 (請確認 Firebase Rules 設置)</div>`;
       });
     }
 
@@ -854,7 +856,7 @@
       update(ref(db, `users/${selectedTargetUser.uid}`), { diamond: newTargetDiamond }).then(() => {
         updateUI();
         document.getElementById('playerListModal').style.display = 'none';
-        alert(`🎉 成功轉贈 ${amount} 💎 給 ${selectedTargetUser.displayName || '玩家'}！`);
+        alert(`🎉 成功轉贈 ${amount} 💎 給 ${selectedTargetUser.displayName}！`);
       }).catch(err => {
         alert("轉贈失敗：" + err.message);
       });
