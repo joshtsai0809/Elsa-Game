@@ -107,6 +107,7 @@
       height: 36px;
       border-radius: 50%;
       border: 2px solid var(--accent-color);
+      object-fit: cover;
     }
 
     .currencies {
@@ -130,11 +131,16 @@
       background: #00b894;
       color: white;
       border: none;
-      padding: 5px 10px;
+      padding: 6px 12px;
       font-size: 0.85rem;
       font-weight: bold;
       border-radius: 15px;
       cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .transfer-btn:hover {
+      background: #00a884;
     }
 
     /* Nav Tabs */
@@ -372,7 +378,7 @@
       border: 2px solid var(--accent-color);
       border-radius: 16px;
       width: 100%;
-      max-width: 350px;
+      max-width: 360px;
       padding: 20px;
       text-align: center;
       position: relative;
@@ -436,16 +442,62 @@
       cursor: pointer;
     }
 
-    /* Inputs for Transfer */
+    /* Inputs & Search List for Transfer */
     .form-input {
       width: 100%;
-      padding: 10px;
+      padding: 10px 14px;
       margin-bottom: 10px;
       border-radius: 8px;
       border: 1px solid var(--border-color);
       background: rgba(0,0,0,0.5);
       color: white;
       font-size: 0.95rem;
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--accent-color);
+    }
+
+    .search-results-list {
+      max-height: 150px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .user-search-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      text-align: left;
+    }
+
+    .user-search-card:hover, .user-search-card.selected {
+      background: rgba(255, 215, 0, 0.15);
+      border-color: var(--accent-color);
+    }
+
+    .user-search-card img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--accent-color);
+    }
+
+    .user-search-card .user-search-name {
+      font-weight: bold;
+      font-size: 0.9rem;
+      color: #fff;
     }
 
     .hidden { display: none !important; }
@@ -476,7 +528,6 @@
         <img id="userAvatar" class="user-avatar" src="" alt="Avatar">
         <div>
           <span id="userName" style="font-weight: bold;">玩家</span>
-          <div id="userIdDisplay" style="font-size: 0.7rem; color: #aaa;"></div>
         </div>
       </div>
       <div class="currencies">
@@ -546,12 +597,18 @@
     </div>
   </div>
 
-  <!-- Transfer Modal -->
+  <!-- Transfer Modal (含頭像即時搜尋) -->
   <div id="transferModal" class="modal-overlay">
     <div class="modal-content">
       <h3 style="margin-bottom: 15px; color: var(--accent-color);">🎁 轉贈鑽石給其他人</h3>
-      <input type="text" id="targetUserSearch" class="form-input" placeholder="輸入對方的 姓名 或 User ID">
+      
+      <input type="text" id="targetUserSearch" class="form-input" placeholder="輸入對方的名字搜尋頭像...">
+      
+      <!-- 搜尋出來的玩家頭像列表 -->
+      <div id="searchResultsList" class="search-results-list"></div>
+
       <input type="number" id="transferAmount" class="form-input" placeholder="欲轉贈的鑽石數量" min="1">
+      
       <div class="modal-btn-group" style="margin-top: 10px;">
         <button id="confirmTransferBtn" class="btn-delete" style="background: #00b894;">確認轉贈</button>
         <button id="closeTransferModalBtn" class="btn-close">取消</button>
@@ -605,12 +662,14 @@
     let currentUser = null;
     let userData = {
       displayName: "",
+      photoURL: "",
       diamond: 10,
       lastCheckinDate: "",
       cards: []
     };
 
     let activeModalCardId = null;
+    let selectedTargetUser = null; // 儲存當前點選要轉贈的玩家
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -633,6 +692,7 @@
     function saveUserData() {
       if (!currentUser) return;
       userData.displayName = currentUser.displayName || "玩家";
+      userData.photoURL = currentUser.photoURL || "https://picsum.photos/100";
       set(ref(db, 'users/' + currentUser.uid), userData).catch(err => console.error("存檔失敗", err));
     }
 
@@ -642,13 +702,20 @@
         if (snapshot.exists()) {
           const val = snapshot.val();
           userData.displayName = currentUser.displayName || "玩家";
+          userData.photoURL = currentUser.photoURL || "https://picsum.photos/100";
           userData.diamond = val.diamond !== undefined ? val.diamond : 10;
           userData.lastCheckinDate = val.lastCheckinDate || "";
           userData.cards = val.cards || [];
         } else {
-          userData = { displayName: currentUser.displayName || "玩家", diamond: 10, lastCheckinDate: "", cards: [] };
-          saveUserData();
+          userData = { 
+            displayName: currentUser.displayName || "玩家", 
+            photoURL: currentUser.photoURL || "https://picsum.photos/100",
+            diamond: 10, 
+            lastCheckinDate: "", 
+            cards: [] 
+          };
         }
+        saveUserData();
         showGameUI();
       }).catch((error) => {
         alert("讀取雲端資料失敗，改為本機資料：\n" + error.message);
@@ -660,10 +727,9 @@
       document.getElementById('authBlock').classList.add('hidden');
       document.getElementById('gameBlock').classList.remove('hidden');
       document.getElementById('userName').innerText = currentUser.displayName || "玩家";
-      document.getElementById('userIdDisplay').innerText = `ID: ${currentUser.uid.substring(0, 8)}...`;
       document.getElementById('userAvatar').src = currentUser.photoURL || "https://picsum.photos/100";
 
-      // 獨佔福利：僅「蔡嘉修」可無限領取 100 💎
+      // 獨佔權限：僅「蔡嘉修」可無限領取 100 💎
       const name = currentUser.displayName || "";
       if (name.includes("蔡嘉修")) {
         document.getElementById('weeklyBanner').classList.remove('hidden');
@@ -684,23 +750,74 @@
       alert(`👑 尊貴的 蔡嘉修，已無限領取 100 💎！（當前總額：${userData.diamond} 💎）`);
     });
 
-    // 轉贈鑽石給其他玩家功能
+    // --- 轉贈與頭像搜尋功能 ---
     document.getElementById('openTransferBtn').addEventListener('click', () => {
       document.getElementById('transferModal').style.display = 'flex';
+      selectedTargetUser = null;
+      document.getElementById('searchResultsList').innerHTML = '';
+      document.getElementById('targetUserSearch').value = '';
+      document.getElementById('transferAmount').value = '';
     });
 
     document.getElementById('closeTransferModalBtn').addEventListener('click', () => {
       document.getElementById('transferModal').style.display = 'none';
     });
 
-    document.getElementById('confirmTransferBtn').addEventListener('click', () => {
-      const targetQuery = document.getElementById('targetUserSearch').value.trim();
-      const amount = parseInt(document.getElementById('transferAmount').value, 10);
+    // 即時輸入名字搜尋用戶頭像
+    document.getElementById('targetUserSearch').addEventListener('input', (e) => {
+      const keyword = e.target.value.trim().toLowerCase();
+      const listEl = document.getElementById('searchResultsList');
+      listEl.innerHTML = '';
+      selectedTargetUser = null;
 
-      if (!targetQuery) {
-        alert("請輸入對方的 姓名 或 User ID！");
+      if (!keyword) return;
+
+      const dbRef = ref(db);
+      get(child(dbRef, 'users')).then((snapshot) => {
+        if (snapshot.exists()) {
+          const users = snapshot.val();
+          let count = 0;
+
+          for (let uid in users) {
+            // 不搜尋自己
+            if (uid === currentUser.uid) continue;
+
+            const u = users[uid];
+            const name = u.displayName || "匿名玩家";
+
+            if (name.toLowerCase().includes(keyword)) {
+              count++;
+              const userCard = document.createElement('div');
+              userCard.className = 'user-search-card';
+              userCard.onclick = () => {
+                document.querySelectorAll('.user-search-card').forEach(c => c.classList.remove('selected'));
+                userCard.classList.add('selected');
+                selectedTargetUser = { uid, ...u };
+              };
+
+              userCard.innerHTML = `
+                <img src="${u.photoURL || 'https://picsum.photos/100'}" alt="avatar">
+                <span class="user-search-name">${name}</span>
+              `;
+              listEl.appendChild(userCard);
+            }
+          }
+
+          if (count === 0) {
+            listEl.innerHTML = `<div style="font-size: 0.85rem; color: #888; padding: 5px;">找不到符合名字的玩家</div>`;
+          }
+        }
+      });
+    });
+
+    // 確認轉贈
+    document.getElementById('confirmTransferBtn').addEventListener('click', () => {
+      if (!selectedTargetUser) {
+        alert("請輸入名字並點擊選取對方的頭像！");
         return;
       }
+
+      const amount = parseInt(document.getElementById('transferAmount').value, 10);
 
       if (isNaN(amount) || amount <= 0) {
         alert("請輸入有效的轉贈鑽石數量！");
@@ -712,48 +829,15 @@
         return;
       }
 
-      // 搜尋雲端玩家資料庫進行轉帳
-      const dbRef = ref(db);
-      get(child(dbRef, 'users')).then((snapshot) => {
-        if (snapshot.exists()) {
-          const users = snapshot.val();
-          let targetUid = null;
-          let targetData = null;
+      // 執行扣款與加款
+      userData.diamond -= amount;
+      const newTargetDiamond = (selectedTargetUser.diamond || 0) + amount;
 
-          // 先精準匹配 UID，再匹配姓名
-          for (let uid in users) {
-            if (uid === targetQuery) {
-              targetUid = uid;
-              targetData = users[uid];
-              break;
-            }
-            if (users[uid].displayName && users[uid].displayName.includes(targetQuery)) {
-              targetUid = uid;
-              targetData = users[uid];
-              break;
-            }
-          }
-
-          if (!targetUid || targetUid === currentUser.uid) {
-            alert("找不到該目標玩家，或不能轉贈給自己！");
-            return;
-          }
-
-          // 執行扣款與加款
-          userData.diamond -= amount;
-          const newTargetDiamond = (targetData.diamond || 0) + amount;
-
-          saveUserData();
-          update(ref(db, `users/${targetUid}`), { diamond: newTargetDiamond }).then(() => {
-            updateUI();
-            document.getElementById('transferModal').style.display = 'none';
-            document.getElementById('targetUserSearch').value = '';
-            document.getElementById('transferAmount').value = '';
-            alert(`🎉 成功轉贈 ${amount} 💎 給 ${targetData.displayName || targetUid}！`);
-          });
-        } else {
-          alert("找不到任何玩家資料！");
-        }
+      saveUserData();
+      update(ref(db, `users/${selectedTargetUser.uid}`), { diamond: newTargetDiamond }).then(() => {
+        updateUI();
+        document.getElementById('transferModal').style.display = 'none';
+        alert(`🎉 成功轉贈 ${amount} 💎 給 ${selectedTargetUser.displayName || '玩家'}！`);
       }).catch(err => {
         alert("轉贈失敗：" + err.message);
       });
