@@ -183,7 +183,7 @@
     }
 
     .weekly-banner {
-      background: linear-gradient(135deg, #b8860b, #ff4500);
+      background: linear-gradient(135deg, #4a00e0, #8e2de2);
       border: 2px solid var(--accent-color);
     }
 
@@ -204,14 +204,38 @@
       cursor: pointer;
     }
 
-    .admin-form {
+    .admin-box {
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255, 215, 0, 0.4);
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 5px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      background: rgba(0,0,0,0.25);
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.2);
+      gap: 10px;
+    }
+
+    .admin-player-list {
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 5px;
+      background: rgba(0,0,0,0.2);
+    }
+
+    .admin-player-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .admin-player-item:hover, .admin-player-item.selected {
+      background: rgba(255, 215, 0, 0.2);
     }
 
     .slot-section {
@@ -506,10 +530,6 @@
       cursor: pointer;
     }
 
-    .btn-action-transfer:hover {
-      background: #00a884;
-    }
-
     .form-input {
       width: 100%;
       padding: 8px 12px;
@@ -563,31 +583,41 @@
       </div>
     </div>
 
-    <!-- Navigation Tabs -->
-    <div class="nav-tabs">
-      <button id="tabSpin" class="tab-btn active">🎰 開始抽卡</button>
-      <button id="tabGallery" class="tab-btn">😍 我的圖鑑 (<span id="totalCardsCount">0</span>)</button>
-    </div>
-
     <!-- Creator Special Area for 蔡嘉修 -->
     <div id="weeklyBanner" class="weekly-banner hidden">
       <div class="banner-row">
         <div>
-          <div style="font-weight: bold; font-size: 1.05rem;">👑 蔡嘉修 創世主專區</div>
-          <div style="font-size: 0.85rem; opacity: 0.9;">無限領取鑽石 & 電子郵件派發鑽石</div>
+          <div style="font-weight: bold; font-size: 1.05rem; color: var(--accent-color);">👑 蔡嘉修 創世主控制台</div>
+          <div style="font-size: 0.85rem; opacity: 0.9;">無限自領鑽石 & 任意調控他人鑽石</div>
         </div>
         <button id="weeklyBtn" class="weekly-btn">無限領 100 💎</button>
       </div>
 
-      <!-- Email Transfer Form -->
-      <div class="admin-form">
-        <div style="font-size: 0.85rem; font-weight: bold; color: var(--accent-color);">🎁 指定 Email 贈送鑽石：</div>
-        <input type="email" id="adminTargetEmail" class="form-input" placeholder="輸入目標玩家 Email (例如 user@gmail.com)">
-        <div style="display: flex; gap: 8px;">
-          <input type="number" id="adminSendAmount" class="form-input" placeholder="鑽石數量" min="1" style="flex: 1;">
-          <button id="adminSendBtn" class="checkin-btn" style="white-space: nowrap; padding: 0 15px;">發送鑽石</button>
+      <!-- Admin Diamond Controller -->
+      <div class="admin-box">
+        <div style="font-size: 0.85rem; font-weight: bold; color: var(--accent-color); display: flex; justify-content: space-between;">
+          <span>🌐 所有玩家鑽石即時監控：</span>
+          <span id="refreshAdminListBtn" style="cursor: pointer; text-decoration: underline;">🔄 重新整理</span>
+        </div>
+        
+        <!-- Player List -->
+        <div id="adminPlayerList" class="admin-player-list"></div>
+
+        <!-- Selected Player Target & Edit Input -->
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div id="adminSelectedText" style="font-size: 0.8rem; color: #fff;">尚未選擇玩家</div>
+          <div style="display: flex; gap: 8px;">
+            <input type="number" id="adminNewDiamondInput" class="form-input" placeholder="直接設定鑽石總數 (例如 9999)" min="0">
+            <button id="adminUpdateDiamondBtn" class="checkin-btn" style="white-space: nowrap; padding: 0 15px;">直接修改</button>
+          </div>
         </div>
       </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button id="tabSpin" class="tab-btn active">🎰 開始抽卡</button>
+      <button id="tabGallery" class="tab-btn">😍 我的圖鑑 (<span id="totalCardsCount">0</span>)</button>
     </div>
 
     <!-- Daily Check-in -->
@@ -642,10 +672,8 @@
       <h3 style="margin-bottom: 5px; color: var(--accent-color);">👥 玩家列表</h3>
       <p style="font-size: 0.85rem; color: #aaa; margin-bottom: 8px;">點擊玩家旁的「轉贈」即可送出鑽石：</p>
       
-      <!-- 全玩家列表 -->
       <div id="playerListContainer" class="player-list-container"></div>
 
-      <!-- 選取狀態與數量輸入 -->
       <div id="transferFormSection" style="margin-top: 10px;">
         <p id="selectedPlayerText" style="font-size: 0.85rem; color: var(--accent-color); margin-bottom: 8px; font-weight: bold;">尚未選擇對象</p>
         <input type="number" id="transferAmount" class="form-input" placeholder="請輸入轉贈鑽石數量" min="1" style="margin-bottom: 10px;">
@@ -713,6 +741,7 @@
 
     let activeModalCardId = null;
     let selectedTargetUser = null;
+    let adminSelectedUser = null;
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -778,6 +807,7 @@
 
       if (name.includes("蔡嘉修")) {
         document.getElementById('weeklyBanner').classList.remove('hidden');
+        loadAdminPlayerList();
       } else {
         document.getElementById('weeklyBanner').classList.add('hidden');
       }
@@ -794,57 +824,75 @@
       alert(`👑 尊貴的 蔡嘉修，已無限領取 100 💎！（當前總額：${userData.diamond} 💎）`);
     });
 
-    // 創世主蔡嘉修：透過 Email 送鑽石功能
-    document.getElementById('adminSendBtn').addEventListener('click', () => {
-      const targetEmail = document.getElementById('adminTargetEmail').value.trim().toLowerCase();
-      const amount = parseInt(document.getElementById('adminSendAmount').value, 10);
-
-      if (!targetEmail) {
-        alert("請輸入目標玩家的 Email！");
-        return;
-      }
-      if (isNaN(amount) || amount <= 0) {
-        alert("請輸入有效的鑽石數量！");
-        return;
-      }
+    // 創世主專區：載入所有玩家列表與鑽石數
+    function loadAdminPlayerList() {
+      const listEl = document.getElementById('adminPlayerList');
+      listEl.innerHTML = `<div style="text-align:center; color:#888;">載入玩家列表中...</div>`;
 
       const dbRef = ref(db);
       get(child(dbRef, 'users')).then((snapshot) => {
-        if (!snapshot.exists()) {
-          alert("目前資料庫中尚無任何玩家！");
-          return;
-        }
+        listEl.innerHTML = '';
+        if (snapshot.exists()) {
+          const users = snapshot.val();
+          for (let uid in users) {
+            const u = users[uid];
+            const uName = u.displayName || u.email || "未知帳號";
+            const uMail = u.email ? `(${u.email})` : '';
+            const uDiamond = u.diamond !== undefined ? u.diamond : 0;
 
-        const users = snapshot.val();
-        let targetUid = null;
-        let targetUser = null;
+            const item = document.createElement('div');
+            item.className = 'admin-player-item';
+            item.innerHTML = `
+              <div>
+                <strong>${uName}</strong> <span style="font-size:0.75rem; color:#aaa;">${uMail}</span>
+              </div>
+              <div style="color: var(--accent-color); font-weight: bold;">
+                💎 ${uDiamond}
+              </div>
+            `;
 
-        // 搜尋匹配 Email 的玩家
-        for (let uid in users) {
-          if (users[uid].email && users[uid].email.toLowerCase() === targetEmail) {
-            targetUid = uid;
-            targetUser = users[uid];
-            break;
+            item.onclick = () => {
+              document.querySelectorAll('.admin-player-item').forEach(el => el.classList.remove('selected'));
+              item.classList.add('selected');
+              adminSelectedUser = { uid, ...u, displayName: uName };
+              document.getElementById('adminSelectedText').innerText = `已選擇對象：${uName} (目前鑽石：${uDiamond})`;
+              document.getElementById('adminNewDiamondInput').value = uDiamond;
+            };
+
+            listEl.appendChild(item);
           }
+        } else {
+          listEl.innerHTML = `<div style="text-align:center; color:#888;">目前尚無任何玩家數據</div>`;
         }
-
-        if (!targetUid) {
-          alert(`⚠️ 找不到 Email 為「${targetEmail}」的玩家！\n請確認該玩家是否已登入過遊戲。`);
-          return;
-        }
-
-        const newDiamond = (targetUser.diamond || 0) + amount;
-        update(ref(db, `users/${targetUid}`), { diamond: newDiamond }).then(() => {
-          const recipientName = targetUser.displayName || targetUser.email;
-          alert(`🎉 成功發送 ${amount} 💎 給「${recipientName}」(${targetEmail})！\n該玩家現在擁有 ${newDiamond} 💎。`);
-          document.getElementById('adminTargetEmail').value = '';
-          document.getElementById('adminSendAmount').value = '';
-        }).catch(err => {
-          alert("發送失敗：" + err.message);
-        });
-
       }).catch(err => {
-        alert("查詢失敗：" + err.message);
+        listEl.innerHTML = `<div style="text-align:center; color:#e74c3c;">載入失敗: ${err.message}</div>`;
+      });
+    }
+
+    document.getElementById('refreshAdminListBtn').addEventListener('click', loadAdminPlayerList);
+
+    // 創世主專區：直接修改特定玩家鑽石
+    document.getElementById('adminUpdateDiamondBtn').addEventListener('click', () => {
+      if (!adminSelectedUser) {
+        alert("請先點擊上方列表中要修改的玩家！");
+        return;
+      }
+
+      const newVal = parseInt(document.getElementById('adminNewDiamondInput').value, 10);
+      if (isNaN(newVal) || newVal < 0) {
+        alert("請輸入有效的鑽石數量（需大於等於 0）！");
+        return;
+      }
+
+      update(ref(db, `users/${adminSelectedUser.uid}`), { diamond: newVal }).then(() => {
+        alert(`🎉 已成功將「${adminSelectedUser.displayName}」的鑽石修改為 ${newVal} 💎！`);
+        if (adminSelectedUser.uid === currentUser.uid) {
+          userData.diamond = newVal;
+          updateUI();
+        }
+        loadAdminPlayerList();
+      }).catch(err => {
+        alert("修改失敗：" + err.message);
       });
     });
 
@@ -916,7 +964,7 @@
           container.innerHTML = `<div style="text-align: center; color: #aaa; padding: 10px;">尚無其他玩家資料</div>`;
         }
       }).catch(err => {
-        container.innerHTML = `<div style="text-align: center; color: #e74c3c; padding: 10px;">載入失敗 (請確認 Firebase Rules)</div>`;
+        container.innerHTML = `<div style="text-align: center; color: #e74c3c; padding: 10px;">載入失敗 (請確認 Firebase Rules 設定)</div>`;
       });
     }
 
