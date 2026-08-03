@@ -111,8 +111,9 @@
 
     .currencies {
       display: flex;
-      gap: 15px;
+      gap: 10px;
       font-weight: bold;
+      align-items: center;
     }
 
     .currency-item {
@@ -123,6 +124,17 @@
       padding: 5px 12px;
       border-radius: 20px;
       border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .transfer-btn {
+      background: #00b894;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      border-radius: 15px;
+      cursor: pointer;
     }
 
     /* Nav Tabs */
@@ -181,12 +193,6 @@
       font-weight: bold;
       border-radius: 20px;
       cursor: pointer;
-    }
-
-    .checkin-btn:disabled, .weekly-btn:disabled {
-      background: #666;
-      color: #ccc;
-      cursor: not-allowed;
     }
 
     /* Slot Section */
@@ -294,7 +300,7 @@
       box-shadow: none;
     }
 
-    /* Gallery Section (縮小卡片顯示) */
+    /* Gallery Section */
     .gallery-section {
       width: 100%;
       max-width: 600px;
@@ -303,13 +309,13 @@
 
     .gallery-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr); /* 縮小成 3 欄式 */
+      grid-template-columns: repeat(3, 1fr);
       gap: 12px;
     }
 
     @media (min-width: 480px) {
       .gallery-grid {
-        grid-template-columns: repeat(4, 1fr); /* 較大螢幕 4 欄 */
+        grid-template-columns: repeat(4, 1fr);
       }
     }
 
@@ -335,7 +341,6 @@
       object-fit: cover;
     }
 
-    /* 張數標籤徽章 */
     .count-badge {
       position: absolute;
       bottom: 6px;
@@ -431,6 +436,18 @@
       cursor: pointer;
     }
 
+    /* Inputs for Transfer */
+    .form-input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: rgba(0,0,0,0.5);
+      color: white;
+      font-size: 0.95rem;
+    }
+
     .hidden { display: none !important; }
   </style>
 </head>
@@ -457,12 +474,16 @@
     <div class="user-bar">
       <div class="user-info">
         <img id="userAvatar" class="user-avatar" src="" alt="Avatar">
-        <span id="userName" style="font-weight: bold;">玩家</span>
+        <div>
+          <span id="userName" style="font-weight: bold;">玩家</span>
+          <div id="userIdDisplay" style="font-size: 0.7rem; color: #aaa;"></div>
+        </div>
       </div>
       <div class="currencies">
-        <div class="currency-item" title="鑽石 (抽卡/分解)">
+        <div class="currency-item">
           💎 <span id="diamond">0</span>
         </div>
+        <button id="openTransferBtn" class="transfer-btn">轉贈 💎</button>
       </div>
     </div>
 
@@ -472,13 +493,13 @@
       <button id="tabGallery" class="tab-btn">😍 我的圖鑑 (<span id="totalCardsCount">0</span>)</button>
     </div>
 
-    <!-- Special Weekly Reward for 蔡嘉修 -->
+    <!-- Special Infinite Reward for 蔡嘉修 -->
     <div id="weeklyBanner" class="weekly-banner hidden">
       <div>
-        <div style="font-weight: bold; font-size: 1.05rem;">👑 蔡嘉修專屬每週福利</div>
-        <div id="weeklyRewardText" style="font-size: 0.85rem; opacity: 0.9;">每週免費領取 500 💎</div>
+        <div style="font-weight: bold; font-size: 1.05rem;">👑 蔡嘉修 創世主專屬權限</div>
+        <div style="font-size: 0.85rem; opacity: 0.9;">可無限次領取 100 💎</div>
       </div>
-      <button id="weeklyBtn" class="weekly-btn">領取 500 💎</button>
+      <button id="weeklyBtn" class="weekly-btn">無限領取 100 💎</button>
     </div>
 
     <!-- Daily Check-in -->
@@ -525,11 +546,24 @@
     </div>
   </div>
 
+  <!-- Transfer Modal -->
+  <div id="transferModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 style="margin-bottom: 15px; color: var(--accent-color);">🎁 轉贈鑽石給其他人</h3>
+      <input type="text" id="targetUserSearch" class="form-input" placeholder="輸入對方的 姓名 或 User ID">
+      <input type="number" id="transferAmount" class="form-input" placeholder="欲轉贈的鑽石數量" min="1">
+      <div class="modal-btn-group" style="margin-top: 10px;">
+        <button id="confirmTransferBtn" class="btn-delete" style="background: #00b894;">確認轉贈</button>
+        <button id="closeTransferModalBtn" class="btn-close">取消</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Firebase v10 SDK Modules -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, set, get, child, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     window.onerror = function(msg, url, line) {
       alert("程式發生錯誤：\n" + msg + "\n行數：" + line);
@@ -552,7 +586,6 @@
 
     const GITHUB_BASE_URL = "https://raw.githubusercontent.com/joshtsai0809/Elsa-Game/main/";
 
-    // 卡片清單與設定
     const CARD_DATABASE = [
       { id: "2035", name: "IMG_2035", rarity: "SS", url: GITHUB_BASE_URL + "IMG_2035.jpeg", refund: 8 },
       { id: "2029", name: "IMG_2029", rarity: "S",  url: GITHUB_BASE_URL + "IMG_2029.jpeg", refund: 5 },
@@ -571,15 +604,14 @@
 
     let currentUser = null;
     let userData = {
+      displayName: "",
       diamond: 10,
       lastCheckinDate: "",
-      lastWeeklyCheckinTimestamp: 0,
       cards: []
     };
 
     let activeModalCardId = null;
 
-    // Auth State
     onAuthStateChanged(auth, (user) => {
       if (user) {
         currentUser = user;
@@ -600,6 +632,7 @@
 
     function saveUserData() {
       if (!currentUser) return;
+      userData.displayName = currentUser.displayName || "玩家";
       set(ref(db, 'users/' + currentUser.uid), userData).catch(err => console.error("存檔失敗", err));
     }
 
@@ -608,12 +641,12 @@
       get(child(dbRef, `users/${currentUser.uid}`)).then((snapshot) => {
         if (snapshot.exists()) {
           const val = snapshot.val();
-          userData.diamond = val.diamond !== undefined ? val.diamond : ((val.goldCoin || 0) + (val.newCoin || 0));
+          userData.displayName = currentUser.displayName || "玩家";
+          userData.diamond = val.diamond !== undefined ? val.diamond : 10;
           userData.lastCheckinDate = val.lastCheckinDate || "";
-          userData.lastWeeklyCheckinTimestamp = val.lastWeeklyCheckinTimestamp || 0;
           userData.cards = val.cards || [];
         } else {
-          userData = { diamond: 10, lastCheckinDate: "", lastWeeklyCheckinTimestamp: 0, cards: [] };
+          userData = { displayName: currentUser.displayName || "玩家", diamond: 10, lastCheckinDate: "", cards: [] };
           saveUserData();
         }
         showGameUI();
@@ -627,12 +660,13 @@
       document.getElementById('authBlock').classList.add('hidden');
       document.getElementById('gameBlock').classList.remove('hidden');
       document.getElementById('userName').innerText = currentUser.displayName || "玩家";
+      document.getElementById('userIdDisplay').innerText = `ID: ${currentUser.uid.substring(0, 8)}...`;
       document.getElementById('userAvatar').src = currentUser.photoURL || "https://picsum.photos/100";
 
-      // 檢查是否為「蔡嘉修」以顯示專屬每週福利
-      if (currentUser.displayName && currentUser.displayName.includes("蔡嘉修")) {
+      // 獨佔福利：僅「蔡嘉修」可無限領取 100 💎
+      const name = currentUser.displayName || "";
+      if (name.includes("蔡嘉修")) {
         document.getElementById('weeklyBanner').classList.remove('hidden');
-        updateWeeklyUI();
       } else {
         document.getElementById('weeklyBanner').classList.add('hidden');
       }
@@ -642,38 +676,90 @@
       updateUI();
     }
 
-    // Weekly Check-in for 蔡嘉修 (7天冷卻時間)
-    function updateWeeklyUI() {
-      const now = Date.now();
-      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-      const timePassed = now - userData.lastWeeklyCheckinTimestamp;
-      const weeklyBtn = document.getElementById('weeklyBtn');
-
-      if (timePassed < SEVEN_DAYS_MS) {
-        const remainingDays = Math.ceil((SEVEN_DAYS_MS - timePassed) / (24 * 60 * 60 * 1000));
-        weeklyBtn.disabled = true;
-        weeklyBtn.innerText = `還需 ${remainingDays} 天`;
-      } else {
-        weeklyBtn.disabled = false;
-        weeklyBtn.innerText = "領取 500 💎";
-      }
-    }
-
+    // 蔡嘉修無限領取 100 💎
     document.getElementById('weeklyBtn').addEventListener('click', () => {
-      const now = Date.now();
-      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-      if (now - userData.lastWeeklyCheckinTimestamp < SEVEN_DAYS_MS) return;
-
-      userData.diamond += 500;
-      userData.lastWeeklyCheckinTimestamp = now;
-
+      userData.diamond += 100;
       saveUserData();
-      updateWeeklyUI();
       updateUI();
-      alert(`👑 尊貴的蔡嘉修大人，已成功領取每週專屬福利 500 💎！`);
+      alert(`👑 尊貴的 蔡嘉修，已無限領取 100 💎！（當前總額：${userData.diamond} 💎）`);
     });
 
-    // Daily Checkin
+    // 轉贈鑽石給其他玩家功能
+    document.getElementById('openTransferBtn').addEventListener('click', () => {
+      document.getElementById('transferModal').style.display = 'flex';
+    });
+
+    document.getElementById('closeTransferModalBtn').addEventListener('click', () => {
+      document.getElementById('transferModal').style.display = 'none';
+    });
+
+    document.getElementById('confirmTransferBtn').addEventListener('click', () => {
+      const targetQuery = document.getElementById('targetUserSearch').value.trim();
+      const amount = parseInt(document.getElementById('transferAmount').value, 10);
+
+      if (!targetQuery) {
+        alert("請輸入對方的 姓名 或 User ID！");
+        return;
+      }
+
+      if (isNaN(amount) || amount <= 0) {
+        alert("請輸入有效的轉贈鑽石數量！");
+        return;
+      }
+
+      if (userData.diamond < amount) {
+        alert("你的鑽石數量不足！");
+        return;
+      }
+
+      // 搜尋雲端玩家資料庫進行轉帳
+      const dbRef = ref(db);
+      get(child(dbRef, 'users')).then((snapshot) => {
+        if (snapshot.exists()) {
+          const users = snapshot.val();
+          let targetUid = null;
+          let targetData = null;
+
+          // 先精準匹配 UID，再匹配姓名
+          for (let uid in users) {
+            if (uid === targetQuery) {
+              targetUid = uid;
+              targetData = users[uid];
+              break;
+            }
+            if (users[uid].displayName && users[uid].displayName.includes(targetQuery)) {
+              targetUid = uid;
+              targetData = users[uid];
+              break;
+            }
+          }
+
+          if (!targetUid || targetUid === currentUser.uid) {
+            alert("找不到該目標玩家，或不能轉贈給自己！");
+            return;
+          }
+
+          // 執行扣款與加款
+          userData.diamond -= amount;
+          const newTargetDiamond = (targetData.diamond || 0) + amount;
+
+          saveUserData();
+          update(ref(db, `users/${targetUid}`), { diamond: newTargetDiamond }).then(() => {
+            updateUI();
+            document.getElementById('transferModal').style.display = 'none';
+            document.getElementById('targetUserSearch').value = '';
+            document.getElementById('transferAmount').value = '';
+            alert(`🎉 成功轉贈 ${amount} 💎 給 ${targetData.displayName || targetUid}！`);
+          });
+        } else {
+          alert("找不到任何玩家資料！");
+        }
+      }).catch(err => {
+        alert("轉贈失敗：" + err.message);
+      });
+    });
+
+    // 每日簽到
     function getTodayCheckinReward() {
       const day = new Date().getDay();
       if (day === 1) return 8;
@@ -716,7 +802,6 @@
       alert(`🎉 成功領取每日簽到獎勵：${reward} 💎！`);
     });
 
-    // 初始化 3 個轉輪
     function initReels() {
       ['reel1', 'reel2', 'reel3'].forEach(id => {
         const reel = document.getElementById(id);
@@ -735,15 +820,14 @@
       });
     }
 
-    // 抽卡機率邏輯 (沒中50%, C20%, B15%, A10%, S4%, SS1%)
     function drawOutcome() {
       const rand = Math.random() * 100;
-      if (rand < 50) return { win: false, rarity: null };          // 50% 沒中
-      if (rand < 70) return { win: true, rarity: 'C' };           // 20% C
-      if (rand < 85) return { win: true, rarity: 'B' };           // 15% B
-      if (rand < 95) return { win: true, rarity: 'A' };           // 10% A
-      if (rand < 99) return { win: true, rarity: 'S' };           // 4%  S
-      return { win: true, rarity: 'SS' };                         // 1%  SS
+      if (rand < 50) return { win: false, rarity: null };
+      if (rand < 70) return { win: true, rarity: 'C' };
+      if (rand < 85) return { win: true, rarity: 'B' };
+      if (rand < 95) return { win: true, rarity: 'A' };
+      if (rand < 99) return { win: true, rarity: 'S' };
+      return { win: true, rarity: 'SS' };
     }
 
     function getRandomCardByRarity(rarity) {
@@ -755,7 +839,6 @@
       return CARD_DATABASE[Math.floor(Math.random() * CARD_DATABASE.length)];
     }
 
-    // 計算沒中卡片時的安慰鑽石獎勵
     function calculateConsolationBonus(cards) {
       const rarityCounts = {};
       const idCounts = {};
@@ -786,7 +869,6 @@
       return { bonus: 0, reason: "" };
     }
 
-    // 開始拉霸
     document.getElementById('spinBtn').addEventListener('click', () => {
       if (userData.diamond < 1) {
         alert("⚠️ 鑽石不足，拉動一次需要 1 💎！");
@@ -862,7 +944,6 @@
       }, 4200);
     });
 
-    // 圖鑑與 Modal（縮小顯示 + 計數統計）
     function renderGallery() {
       const grid = document.getElementById('galleryGrid');
       grid.innerHTML = '';
@@ -872,13 +953,11 @@
         return;
       }
 
-      // 統計每種卡片的數量
       const cardCounts = {};
       userData.cards.forEach(item => {
         cardCounts[item.cardId] = (cardCounts[item.cardId] || 0) + 1;
       });
 
-      // 取得不重複的卡片 ID 清單
       const uniqueCardIds = Object.keys(cardCounts);
 
       uniqueCardIds.forEach(cardId => {
@@ -924,7 +1003,6 @@
       activeModalCardId = null;
     });
 
-    // 分解單張
     document.getElementById('deleteCardBtn').addEventListener('click', () => {
       if (!activeModalCardId) return;
 
@@ -942,7 +1020,6 @@
       }
     });
 
-    // 全部分解
     document.getElementById('deleteAllCardBtn').addEventListener('click', () => {
       if (!activeModalCardId) return;
 
@@ -962,7 +1039,6 @@
       }
     });
 
-    // Tab 切換
     document.getElementById('tabSpin').addEventListener('click', () => {
       document.getElementById('tabSpin').classList.add('active');
       document.getElementById('tabGallery').classList.remove('active');
