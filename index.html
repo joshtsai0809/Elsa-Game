@@ -442,7 +442,56 @@
       cursor: pointer;
     }
 
-    /* Inputs & Search List for Transfer */
+    /* Player List Style */
+    .player-list-container {
+      max-height: 200px;
+      overflow-y: auto;
+      margin: 10px 0;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 5px;
+      background: rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .player-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .player-card:hover {
+      background: rgba(255, 215, 0, 0.1);
+      border-color: rgba(255, 215, 0, 0.5);
+    }
+
+    .player-card.selected {
+      background: rgba(255, 215, 0, 0.25);
+      border-color: var(--accent-color);
+    }
+
+    .player-info-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .player-avatar-small {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--accent-color);
+    }
+
     .form-input {
       width: 100%;
       padding: 10px 14px;
@@ -457,47 +506,6 @@
 
     .form-input:focus {
       border-color: var(--accent-color);
-    }
-
-    .search-results-list {
-      max-height: 150px;
-      overflow-y: auto;
-      margin-bottom: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .user-search-card {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px 12px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s, border-color 0.2s;
-      text-align: left;
-    }
-
-    .user-search-card:hover, .user-search-card.selected {
-      background: rgba(255, 215, 0, 0.15);
-      border-color: var(--accent-color);
-    }
-
-    .user-search-card img {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 1px solid var(--accent-color);
-    }
-
-    .user-search-card .user-search-name {
-      font-weight: bold;
-      font-size: 0.9rem;
-      color: #fff;
     }
 
     .hidden { display: none !important; }
@@ -597,19 +605,20 @@
     </div>
   </div>
 
-  <!-- Transfer Modal (含頭像即時搜尋) -->
+  <!-- Player List & Transfer Modal -->
   <div id="transferModal" class="modal-overlay">
     <div class="modal-content">
-      <h3 style="margin-bottom: 15px; color: var(--accent-color);">🎁 轉贈鑽石給其他人</h3>
+      <h3 style="margin-bottom: 10px; color: var(--accent-color);">🎁 玩家列表與轉贈</h3>
+      <p style="font-size: 0.85rem; color: #aaa; margin-bottom: 8px;">請選擇要轉贈鑽石的玩家：</p>
       
-      <input type="text" id="targetUserSearch" class="form-input" placeholder="輸入對方的名字搜尋頭像...">
-      
-      <!-- 搜尋出來的玩家頭像列表 -->
-      <div id="searchResultsList" class="search-results-list"></div>
+      <!-- 玩家列表容器 -->
+      <div id="playerListContainer" class="player-list-container"></div>
 
-      <input type="number" id="transferAmount" class="form-input" placeholder="欲轉贈的鑽石數量" min="1">
+      <p id="selectedPlayerText" style="font-size: 0.85rem; color: var(--accent-color); margin: 8px 0; font-weight: bold;">尚未選擇玩家</p>
+
+      <input type="number" id="transferAmount" class="form-input" placeholder="請輸入欲轉贈的鑽石數量" min="1">
       
-      <div class="modal-btn-group" style="margin-top: 10px;">
+      <div class="modal-btn-group" style="margin-top: 5px;">
         <button id="confirmTransferBtn" class="btn-delete" style="background: #00b894;">確認轉贈</button>
         <button id="closeTransferModalBtn" class="btn-close">取消</button>
       </div>
@@ -669,7 +678,7 @@
     };
 
     let activeModalCardId = null;
-    let selectedTargetUser = null; // 儲存當前點選要轉贈的玩家
+    let selectedTargetUser = null;
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -750,77 +759,80 @@
       alert(`👑 尊貴的 蔡嘉修，已無限領取 100 💎！（當前總額：${userData.diamond} 💎）`);
     });
 
-    // --- 轉贈與頭像搜尋功能 ---
+    // --- 玩家列表與轉贈功能 ---
     document.getElementById('openTransferBtn').addEventListener('click', () => {
       document.getElementById('transferModal').style.display = 'flex';
       selectedTargetUser = null;
-      document.getElementById('searchResultsList').innerHTML = '';
-      document.getElementById('targetUserSearch').value = '';
+      document.getElementById('selectedPlayerText').innerText = "尚未選擇玩家";
       document.getElementById('transferAmount').value = '';
+      loadPlayerList();
     });
 
     document.getElementById('closeTransferModalBtn').addEventListener('click', () => {
       document.getElementById('transferModal').style.display = 'none';
     });
 
-    // 即時輸入名字搜尋用戶頭像
-    document.getElementById('targetUserSearch').addEventListener('input', (e) => {
-      const keyword = e.target.value.trim().toLowerCase();
-      const listEl = document.getElementById('searchResultsList');
-      listEl.innerHTML = '';
-      selectedTargetUser = null;
-
-      if (!keyword) return;
+    // 載入全服玩家列表
+    function loadPlayerList() {
+      const container = document.getElementById('playerListContainer');
+      container.innerHTML = `<div style="text-align: center; color: #aaa; padding: 10px;">讀取玩家列表中...</div>`;
 
       const dbRef = ref(db);
       get(child(dbRef, 'users')).then((snapshot) => {
+        container.innerHTML = '';
         if (snapshot.exists()) {
           const users = snapshot.val();
           let count = 0;
 
           for (let uid in users) {
-            // 不搜尋自己
+            // 排除自己
             if (uid === currentUser.uid) continue;
 
+            count++;
             const u = users[uid];
             const name = u.displayName || "匿名玩家";
 
-            if (name.toLowerCase().includes(keyword)) {
-              count++;
-              const userCard = document.createElement('div');
-              userCard.className = 'user-search-card';
-              userCard.onclick = () => {
-                document.querySelectorAll('.user-search-card').forEach(c => c.classList.remove('selected'));
-                userCard.classList.add('selected');
-                selectedTargetUser = { uid, ...u };
-              };
+            const card = document.createElement('div');
+            card.className = 'player-card';
+            card.onclick = () => {
+              document.querySelectorAll('.player-card').forEach(c => c.classList.remove('selected'));
+              card.classList.add('selected');
+              selectedTargetUser = { uid, ...u };
+              document.getElementById('selectedPlayerText').innerText = `已選擇：${name}`;
+            };
 
-              userCard.innerHTML = `
-                <img src="${u.photoURL || 'https://picsum.photos/100'}" alt="avatar">
-                <span class="user-search-name">${name}</span>
-              `;
-              listEl.appendChild(userCard);
-            }
+            card.innerHTML = `
+              <div class="player-info-left">
+                <img class="player-avatar-small" src="${u.photoURL || 'https://picsum.photos/100'}" alt="avatar">
+                <span style="font-weight: bold; font-size: 0.95rem;">${name}</span>
+              </div>
+              <span style="font-size: 0.8rem; color: #aaa;">💎 ${u.diamond || 0}</span>
+            `;
+            container.appendChild(card);
           }
 
           if (count === 0) {
-            listEl.innerHTML = `<div style="font-size: 0.85rem; color: #888; padding: 5px;">找不到符合名字的玩家</div>`;
+            container.innerHTML = `<div style="text-align: center; color: #aaa; padding: 10px;">目前尚無其他玩家</div>`;
           }
+        } else {
+          container.innerHTML = `<div style="text-align: center; color: #aaa; padding: 10px;">尚無其他玩家資料</div>`;
         }
+      }).catch(err => {
+        container.innerHTML = `<div style="text-align: center; color: #e74c3c; padding: 10px;">載入失敗</div>`;
       });
-    });
+    }
 
     // 確認轉贈
     document.getElementById('confirmTransferBtn').addEventListener('click', () => {
       if (!selectedTargetUser) {
-        alert("請輸入名字並點擊選取對方的頭像！");
+        alert("請先點擊列表選擇要轉贈的玩家！");
         return;
       }
 
       const amount = parseInt(document.getElementById('transferAmount').value, 10);
 
       if (isNaN(amount) || amount <= 0) {
-        alert("請輸入有效的轉贈鑽石數量！");
+        alert("請輸入有效的轉贈數量！");
         return;
       }
 
@@ -829,7 +841,7 @@
         return;
       }
 
-      // 執行扣款與加款
+      // 扣款與加款
       userData.diamond -= amount;
       const newTargetDiamond = (selectedTargetUser.diamond || 0) + amount;
 
